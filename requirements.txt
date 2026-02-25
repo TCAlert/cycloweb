@@ -1,2 +1,14 @@
 fastapi
 uvicorn[standard]
+numpy
+scipy
+matplotlib
+xarray
+cartopy
+boto3
+pandas
+Pillow
+cfgrib
+eccodes
+netCDF4
+h5netcdf

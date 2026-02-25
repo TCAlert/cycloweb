@@ -6,6 +6,7 @@ matplotlib
 xarray
 cartopy
 boto3
+s3fs
 pandas
 Pillow
 cfgrib

@@ -1,13 +1,19 @@
 import pandas as pd
 import numpy as np 
 
+COLS = ['NAME', 'SEASON', 'USA_ATCF_ID', 'ISO_TIME', 'LAT', 'LON']
+
 def loadCSV():
     try:
-        CSV = pd.read_csv('https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv')
+        CSV = pd.read_csv(
+            'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv',
+            usecols=COLS, skiprows=[1], low_memory=False
+        )
     except:
-        CSV = pd.read_csv('https://data.humdata.org/dataset/96b309bf-cedb-4f63-8ca3-eb56cdcae876/resource/d1b9b02a-53c7-4134-ada5-234efd2efec2/download/ibtracs_all_list_v04r01.csv')
-    prefixes = ('TOKYO', 'TD9635', 'CMA', 'HKO', 'KMA', 'NEWDELHI', 'REUNION', 'BOM', 'NADI', 'TD9636', 'WELLINGTON', 'DS824', 'NEUMANN', 'MLC')
-    CSV = CSV.loc[:, ~CSV.columns.str.startswith(prefixes)]
+        CSV = pd.read_csv(
+            'https://data.humdata.org/dataset/96b309bf-cedb-4f63-8ca3-eb56cdcae876/resource/d1b9b02a-53c7-4134-ada5-234efd2efec2/download/ibtracs_all_list_v04r01.csv',
+            usecols=COLS, skiprows=[1], low_memory=False
+        )
 
     return CSV
 

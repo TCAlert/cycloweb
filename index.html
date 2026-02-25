@@ -37,28 +37,6 @@
 
     .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
 
-    /* API URL config */
-    .api-config {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-    }
-    .api-config label { font-size: .85rem; color: var(--muted); white-space: nowrap; }
-    .api-config input {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      padding: .4rem .75rem;
-      font-size: .9rem;
-    }
-
     /* Tabs */
     .tabs {
       display: flex;
@@ -168,13 +146,6 @@
 </header>
 
 <div class="container">
-
-  <!-- API URL config -->
-  <div class="api-config">
-    <label for="apiBase">API URL</label>
-    <input id="apiBase" type="text" value="https://your-api.onrender.com"
-           placeholder="https://your-api.onrender.com" />
-  </div>
 
   <!-- Tabs -->
   <div class="tabs">
@@ -417,9 +388,8 @@
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
-  function apiBase() {
-    return document.getElementById('apiBase').value.replace(/\/$/, '');
-  }
+  const API_BASE = 'https://cycloweb.onrender.com';
+  function apiBase() { return API_BASE; }
 
   function val(id) {
     return document.getElementById(id).value.trim();

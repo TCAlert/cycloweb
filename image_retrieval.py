@@ -83,9 +83,18 @@ def getDataGOES(satellite, year, month, day, time, band):
             l.append(files[x])
     
     # Loop through l in order to find the file with the matching time
+    file = None
     for x in range(len(l)):
         if time in l[x]:
             file = l[x]
+            break
+
+    # Fall back to the first available file in the hour if no exact minute match
+    if file is None:
+        if l:
+            file = l[0]
+        else:
+            raise FileNotFoundError(f'No GOES-{satellite} band {band} files found for {year}/{days} {time[0:2]}z')
 
     # Download the file, and rename it to goesfile.nc
     try:

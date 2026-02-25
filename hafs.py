@@ -27,6 +27,8 @@ import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 warnings.filterwarnings("ignore")
+from matplotlib import rcParams
+rcParams['font.family'] = 'Courier New'
 
 TRANS_USAGE = '```$trans [storm (XXx)] [init_date] [init_hour] [forecast hour] [optional: model]```'
 VENT_USAGE = '```$vent [storm (XXx)] [init_date] [init_hour] [forecast hour] [optional: level] [optional: model]```'
@@ -135,7 +137,7 @@ def rePoPolar(dataset, name, tRes = 720, rRes = 360):
 def labels(ax, r = 300):
     radii = np.linspace(0, r, 4)
     ax.set_yticks(radii)
-    ax.set_yticklabels([f'{int(rx)}km' for rx in radii], fontfamily = 'Courier New', alpha = 0.75, path_effects=[pe.withStroke(linewidth=2.25, foreground="white")])
+    ax.set_yticklabels([f'{int(rx)}km' for rx in radii], fontfamily = ['Courier New', 'Liberation Mono', 'DejaVu Sans Mono'], alpha = 0.75, path_effects=[pe.withStroke(linewidth=2.25, foreground="white")])
     ax.set_xticklabels(['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'])#, path_effects=[pe.withStroke(linewidth=2.25, foreground="white")])
 
     # ax.set_frame_on(False)
@@ -472,7 +474,7 @@ def transPlot(storm, date, init, fhour, model = 'a'):
 
 def hafsCrossSectionPlot(storm, date, init, fhour, var, dir = 'h', model = 'a'):
     lc = 'black'
-    rcParams['font.family'] = 'Courier New'
+    rcParams['font.family'] = ['Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'monospace']
     level = np.arange(100, 1025, 25)
     if var.lower() == 'temp':
         data = getData(storm, date, init, fhour, ['t'], [level], model)[0] - 273.15
@@ -651,7 +653,7 @@ def hafsCrossSectionPlot(storm, date, init, fhour, var, dir = 'h', model = 'a'):
 
 def hafsPlot(storm, date, init, fhour, var, level = 1000, model = 'a', t = 'storm'):
     lc = 'black'
-    rcParams['font.family'] = 'Courier New'
+    rcParams['font.family'] = ['Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'monospace']
 
     if var.lower() == 'temp':
         data = getData(storm, date, init, fhour, ['t'], level, model, t = t)[0] - 273.15

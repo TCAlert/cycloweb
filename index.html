@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CycloBot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,7 +14,7 @@
     body {
       background: #fff;
       color: #111;
-      font-family: 'Courier New', Courier, monospace;
+      font-family: 'Courier Prime', 'Courier New', Courier, monospace;
       font-size: 14px;
       display: flex;
       flex-direction: column;
@@ -153,6 +155,112 @@
     .image-placeholder {
       font-size: 11px;
       color: #bbb;
+    }
+
+    /* ── View toggle (output | ref) ── */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      margin-right: auto;
+      padding: 0 .5rem;
+      gap: .1rem;
+      border-right: 1px solid #aaa;
+    }
+    .view-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: #888;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      padding: .3rem .6rem;
+      margin-bottom: -1px;
+    }
+    .view-btn.active {
+      color: #111;
+      border-color: #aaa;
+      border-bottom-color: #fff;
+      background: #fff;
+    }
+    .view-btn:hover:not(.active) { color: #444; }
+
+    /* ── Reference area ── */
+    .ref-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: .8rem 1rem;
+      display: none;
+    }
+    .ref-area.visible { display: block; }
+
+    .ref-panel { display: none; }
+    .ref-panel.active { display: block; }
+
+    .ref-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 1.5rem;
+    }
+
+    .ref-section { margin-bottom: 1rem; }
+    .ref-section h3 {
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: .08em;
+      color: #666;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: .2rem;
+      margin-bottom: .4rem;
+    }
+
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .ref-table td {
+      padding: .12rem .3rem;
+      vertical-align: top;
+    }
+    .ref-table td.code {
+      font-weight: bold;
+      white-space: nowrap;
+      color: #111;
+      width: 6em;
+    }
+    .ref-table td.note { color: #666; }
+    .ref-table tr:nth-child(even) td { background: #f8f8f8; }
+
+    .swatch {
+      display: inline-block;
+      width: 56px;
+      height: 9px;
+      vertical-align: middle;
+      margin-right: 3px;
+      border: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+      .layout { flex-direction: column; }
+
+      .left-panel {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #bbb;
+        max-height: 45vh;
+        overflow-y: auto;
+      }
+
+      .right-panel { flex: 1; min-height: 0; }
+
+      .tabs { justify-content: flex-start; flex-wrap: wrap; }
+
+      .view-toggle { border-right: none; padding-right: 0; }
+
+      .ref-cols { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -304,11 +412,15 @@
   <!-- ── Right: tabs + image ── -->
   <div class="right-panel">
     <div class="tabs">
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="output">output</button>
+        <button class="view-btn" data-view="ref">ref</button>
+      </div>
       <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
       <button class="tab-btn"        data-tab="mcfetch">McIDAS</button>
       <button class="tab-btn"        data-tab="hafs">HAFS</button>
     </div>
-    <div class="image-area">
+    <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
       <img id="result-img" src="" alt="" />
       <div class="image-links" id="result-links">
@@ -316,11 +428,151 @@
         <a id="link-extra" href="#" target="_blank" style="display:none"></a>
       </div>
     </div>
-  </div>
+
+    <!-- ── Reference area ── -->
+    <div class="ref-area" id="view-ref">
+
+      <!-- Satellite reference (GOES / Himawari / McIDAS) -->
+      <div class="ref-panel active" id="ref-satellite">
+        <div class="ref-cols">
+
+          <div>
+            <div class="ref-section">
+              <h3>BASIN REGIONS</h3>
+              <table class="ref-table">
+                <tr><td class="code">NATL</td><td class="note">North Atlantic</td></tr>
+                <tr><td class="code">TATL</td><td class="note">Tropical Atlantic</td></tr>
+                <tr><td class="code">WATL</td><td class="note">Western Atlantic</td></tr>
+                <tr><td class="code">CATL</td><td class="note">Central Atlantic</td></tr>
+                <tr><td class="code">EATL</td><td class="note">Eastern Atlantic</td></tr>
+                <tr><td class="code">MDR</td><td class="note">Main Dev. Region</td></tr>
+                <tr><td class="code">CV</td><td class="note">Cape Verde</td></tr>
+                <tr><td class="code">GOM</td><td class="note">Gulf of Mexico</td></tr>
+                <tr><td class="code">EPAC</td><td class="note">Eastern Pacific</td></tr>
+                <tr><td class="code">CPAC</td><td class="note">Central Pacific</td></tr>
+                <tr><td class="code">WPAC</td><td class="note">Western Pacific</td></tr>
+                <tr><td class="code">IO</td><td class="note">Indian Ocean</td></tr>
+                <tr><td class="code">BOB</td><td class="note">Bay of Bengal</td></tr>
+                <tr><td class="code">ARB</td><td class="note">Arabian Sea</td></tr>
+                <tr><td class="code">SWIO</td><td class="note">SW Indian Ocean</td></tr>
+                <tr><td class="code">SEIO</td><td class="note">SE Indian Ocean</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>US REGIONS</h3>
+              <table class="ref-table">
+                <tr><td class="code">NE</td><td class="note">Northeast</td></tr>
+                <tr><td class="code">MA</td><td class="note">Mid-Atlantic</td></tr>
+                <tr><td class="code">SE</td><td class="note">Southeast</td></tr>
+                <tr><td class="code">SC</td><td class="note">South Central</td></tr>
+                <tr><td class="code">MW</td><td class="note">Midwest</td></tr>
+                <tr><td class="code">GP</td><td class="note">Great Plains</td></tr>
+                <tr><td class="code">SW</td><td class="note">Southwest</td></tr>
+                <tr><td class="code">NW</td><td class="note">Northwest</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <div class="ref-section">
+              <h3>IR COLORMAPS</h3>
+              <table class="ref-table">
+                <tr><td class="code">irg</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#261940,#000,#ff2929,#ffff29,#4c8032,#fff,#090926,#b55555)"></span>default</td></tr>
+                <tr><td class="code">gs</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000)"></span>grayscale</td></tr>
+                <tr><td class="code">bd</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#a8d1ff,#011a36,#fafafa,#d2d2d2,#000,#9a9a9a)"></span>classic blue-dark</td></tr>
+                <tr><td class="code">bd2–bd5</td><td class="note">BD variants</td></tr>
+                <tr><td class="code">nhc</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fcfcfc,#fc0000,#00fc00,#0000fc,#000)"></span>NHC style</td></tr>
+                <tr><td class="code">avn</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#585858,#c80000,#fafa00,#0096ff,#fff,#000)"></span>aviation</td></tr>
+                <tr><td class="code">rammb</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#fff,#0000fe,#00fc00,#fb0000,#fcfc00,#fff)"></span>RAMMB</td></tr>
+                <tr><td class="code">funktop</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fcfcfc,#00fc00,#fc0000,#00fcfc,#f8f800,#d8d8d8,#000)"></span>funky cold tops</td></tr>
+                <tr><td class="code">rainbow</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#00f,#0ff,#0f0,#ff0,#f80,#f00)"></span>full spectrum</td></tr>
+                <tr><td class="code">spooky</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000,#590401,#eb8415,#f5e2c1,#fff,#2a084d)"></span>halloween</td></tr>
+                <tr><td class="code">lava</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#7a84cc,#fff,#f09c43,#8a2727,#f26555,#eddb82,#2e271d)"></span>lava</td></tr>
+                <tr><td class="code">ice</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#857b33,#12247d,#75d8d8,#0f63bc,#000,#d1d8e2)"></span>icy blues</td></tr>
+                <tr><td class="code">volcano</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#6565ff,#000,#db502f,#efe47d,#fff,#1f0038,#d46c22)"></span>volcanic</td></tr>
+                <tr><td class="code">candy</td><td class="note">pastel tones</td></tr>
+                <tr><td class="code">shrek</td><td class="note">green-toned</td></tr>
+                <tr><td class="code">cody</td><td class="note">custom IR</td></tr>
+                <tr><td class="code">wu</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#7a7a7a,#e2dfde,#014bb4,#189010,#ffff00,#f00)"></span>Weather Underground</td></tr>
+                <tr><td class="code">ir / ira–irz</td><td class="note">numbered custom series</td></tr>
+              </table>
+            </div>
+
+            <div class="ref-section">
+              <h3>WV COLORMAPS</h3>
+              <table class="ref-table">
+                <tr><td class="code">wv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#b3afaf,#30453d,#89d9a7,#465185,#e3e1de,#a85432,#1f1e1c,#696563)"></span>standard</td></tr>
+                <tr><td class="code">gs</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000)"></span>grayscale</td></tr>
+                <tr><td class="code">irg</td><td class="note">IR-like gray-green</td></tr>
+                <tr><td class="code">codywv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#fbca0c,#d92028,#03062f,#64bddf,#ededed,#fcd100)"></span>Cody</td></tr>
+                <tr><td class="code">mikewv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#8927f4,#274397,#44b8cf,#f2f1f6,#d2352c,#fdbf20,#1b1a17)"></span>Mike</td></tr>
+                <tr><td class="code">ghost</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000,#7cabb9,#48518c,#301830,#62526e)"></span>faded dark</td></tr>
+                <tr><td class="code">bajaflash</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#e3ba24,#fff,#7cabb9,#48518c,#301830,#62526e)"></span>orange flash</td></tr>
+                <tr><td class="code">msfc</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#dfdfdf,#9a0b09,#d51312,#d4d925,#266775,#c7c9ca,#000)"></span>MSFC</td></tr>
+                <tr><td class="code">uv</td><td class="note">UV purple-blue</td></tr>
+                <tr><td class="code">ssd</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#005082,#009696,#fa3200,#9600dc,#0000e2,#fff)"></span>SSD colorful</td></tr>
+                <tr><td class="code">dark</td><td class="note">dark gray</td></tr>
+                <tr><td class="code">aswv</td><td class="note">AS custom</td></tr>
+                <tr><td class="code">wv2–wv53</td><td class="note">numbered variants</td></tr>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /ref-satellite -->
+
+      <!-- HAFS reference -->
+      <div class="ref-panel" id="ref-hafs">
+        <div class="ref-cols">
+          <div class="ref-section">
+            <h3>VARIABLES</h3>
+            <table class="ref-table">
+              <tr><td class="code">temp</td><td class="note">Temperature (level req.)</td></tr>
+              <tr><td class="code">dewp</td><td class="note">Dewpoint (level req.)</td></tr>
+              <tr><td class="code">wind</td><td class="note">Wind speed + barbs (level req.)</td></tr>
+              <tr><td class="code">vvel</td><td class="note">Vertical velocity (level req.)</td></tr>
+              <tr><td class="code">rh</td><td class="note">Relative humidity (level req.)</td></tr>
+              <tr><td class="code">vort</td><td class="note">Vorticity (level req.)</td></tr>
+              <tr><td class="code">tadv</td><td class="note">Temperature advection</td></tr>
+              <tr><td class="code">mfc</td><td class="note">Moisture flux convergence</td></tr>
+              <tr><td class="code">div</td><td class="note">Divergence</td></tr>
+              <tr><td class="code">pwat</td><td class="note">Precipitable water</td></tr>
+              <tr><td class="code">cape</td><td class="note">CAPE</td></tr>
+              <tr><td class="code">cinh</td><td class="note">CIN</td></tr>
+              <tr><td class="code">sst</td><td class="note">Sea surface temperature</td></tr>
+              <tr><td class="code">gust</td><td class="note">Wind gusts</td></tr>
+              <tr><td class="code">slp</td><td class="note">Sea level pressure</td></tr>
+              <tr><td class="code">eff</td><td class="note">Effective layer</td></tr>
+              <tr><td class="code">mpi</td><td class="note">Max potential intensity</td></tr>
+              <tr><td class="code">diseq</td><td class="note">Disequilibrium (MPI−intensity)</td></tr>
+              <tr><td class="code">shear</td><td class="note">Wind shear</td></tr>
+              <tr><td class="code">ref</td><td class="note">Reflectivity</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>NOTES</h3>
+            <table class="ref-table">
+              <tr><td class="code">storm</td><td class="note">NNX format — e.g. 09l, 01e, 02w</td></tr>
+              <tr><td class="code">init</td><td class="note">00 / 06 / 12 / 18</td></tr>
+              <tr><td class="code">fhour</td><td class="note">e.g. 024, 048, 120</td></tr>
+              <tr><td class="code">model</td><td class="note">a (default) or b</td></tr>
+              <tr><td class="code">domain</td><td class="note">storm (default) or synoptic</td></tr>
+              <tr><td class="code">level</td><td class="note">hPa — e.g. 850, 500, 200</td></tr>
+            </table>
+          </div>
+        </div>
+      </div><!-- /ref-hafs -->
+
+    </div><!-- /view-ref -->
+
+  </div><!-- /right-panel -->
 
 </div><!-- /layout -->
 
 <script>
+  // Track active tool
+  let activeTab = 'plot';
+
   // Tab switching
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -328,6 +580,28 @@
       document.querySelectorAll('.param-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
+      activeTab = btn.dataset.tab;
+      // Sync ref panel to active tool
+      const refId = activeTab === 'hafs' ? 'ref-hafs' : 'ref-satellite';
+      document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(refId).classList.add('active');
+    });
+  });
+
+  // View toggle (output / ref)
+  const viewOutput = document.getElementById('view-output');
+  const viewRef    = document.getElementById('view-ref');
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (btn.dataset.view === 'ref') {
+        viewOutput.style.display = 'none';
+        viewRef.classList.add('visible');
+      } else {
+        viewOutput.style.display = '';
+        viewRef.classList.remove('visible');
+      }
     });
   });
 
@@ -342,6 +616,11 @@
   }
 
   function showImage(imgUrl, extraUrl, extraLabel) {
+    // Switch to output view when a result arrives
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.view-btn[data-view="output"]').classList.add('active');
+    viewOutput.style.display = '';
+    viewRef.classList.remove('visible');
     document.getElementById('img-placeholder').style.display = 'none';
     const img = document.getElementById('result-img');
     img.src = imgUrl;

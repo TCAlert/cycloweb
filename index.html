@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CycloBot Web</title>
+  <style>
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --accent:  #58a6ff;
+      --text:    #e6edf3;
+      --muted:   #8b949e;
+      --success: #3fb950;
+      --error:   #f85149;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header span { color: var(--muted); font-size: 0.9rem; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* API URL config */
+    .api-config {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .api-config label { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+    .api-config input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: .4rem .75rem;
+      font-size: .9rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: .5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .95rem;
+      padding: .6rem 1rem .5rem;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Form card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1rem; margin-bottom: .25rem; }
+    .card p.desc { font-size: .85rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .field { display: flex; flex-direction: column; gap: .3rem; }
+    .field label { font-size: .8rem; color: var(--muted); }
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: .45rem .75rem;
+      font-size: .9rem;
+      transition: border-color .15s;
+    }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .field input.optional { border-style: dashed; }
+    .field .hint { font-size: .75rem; color: var(--muted); }
+
+    button.submit {
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #0d1117;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: .55rem 1.5rem;
+      transition: opacity .15s;
+    }
+    button.submit:disabled { opacity: .5; cursor: not-allowed; }
+    button.submit:hover:not(:disabled) { opacity: .85; }
+
+    /* Result area */
+    .result {
+      margin-top: 1.25rem;
+      display: none;
+    }
+    .result.visible { display: block; }
+    .result img {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: block;
+      margin-bottom: .75rem;
+    }
+    .result .links { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .result .links a {
+      color: var(--accent);
+      font-size: .85rem;
+      text-decoration: none;
+    }
+    .result .links a:hover { text-decoration: underline; }
+
+    .status {
+      font-size: .85rem;
+      padding: .5rem .75rem;
+      border-radius: 6px;
+      margin-top: .75rem;
+    }
+    .status.loading { background: #1c2a3a; color: var(--accent); }
+    .status.error   { background: #2d1b1b; color: var(--error); white-space: pre-wrap; font-family: monospace; font-size: .78rem; }
+    .status.success { background: #1a2e1a; color: var(--success); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CycloBot Web</h1>
+  <span>Satellite &amp; Radar Imagery</span>
+</header>
+
+<div class="container">
+
+  <!-- API URL config -->
+  <div class="api-config">
+    <label for="apiBase">API URL</label>
+    <input id="apiBase" type="text" value="https://your-api.onrender.com"
+           placeholder="https://your-api.onrender.com" />
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="plot">Plot (GOES/Himawari)</button>
+    <button class="tab-btn"       data-tab="nexrad">NEXRAD</button>
+    <button class="tab-btn"       data-tab="mcfetch">McIDAS Fetch</button>
+    <button class="tab-btn"       data-tab="hafs">HAFS</button>
+  </div>
+
+  <!-- ── PLOT ──────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-plot">
+    <div class="card">
+      <h2>Satellite IR / Water Vapor Plot</h2>
+      <p class="desc">Fetches and plots a GOES or Himawari channel over a specified location.</p>
+      <div class="grid">
+        <div class="field">
+          <label>Satellite <span style="color:var(--error)">*</span></label>
+          <input id="plot-satellite" type="text" placeholder="G16, G18, H9" />
+          <span class="hint">e.g. G16, G18, H9</span>
+        </div>
+        <div class="field">
+          <label>Date <span style="color:var(--error)">*</span></label>
+          <input id="plot-date" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="field">
+          <label>Time (UTC) <span style="color:var(--error)">*</span></label>
+          <input id="plot-time" type="text" placeholder="1800" maxlength="4" />
+        </div>
+        <div class="field">
+          <label>Latitude <span style="color:var(--error)">*</span></label>
+          <input id="plot-lat" type="text" placeholder="25.0" />
+        </div>
+        <div class="field">
+          <label>Longitude <span style="color:var(--error)">*</span></label>
+          <input id="plot-lon" type="text" placeholder="-80.0" />
+        </div>
+        <div class="field">
+          <label>Band <span style="color:var(--error)">*</span></label>
+          <input id="plot-band" type="text" placeholder="13" />
+          <span class="hint">Channel number</span>
+        </div>
+        <div class="field">
+          <label>Colormap</label>
+          <input id="plot-cmap" type="text" placeholder="irg" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+          <label>Zoom</label>
+          <input id="plot-zoom" type="text" placeholder="2" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+      </div>
+      <button class="submit" onclick="runPlot()">Generate Plot</button>
+      <div class="status" id="plot-status"></div>
+      <div class="result" id="plot-result">
+        <img id="plot-img" src="" alt="Generated plot" />
+        <div class="links">
+          <a id="plot-img-link"  href="#" target="_blank">Open image</a>
+          <a id="plot-nc-link"   href="#" target="_blank">Download .nc</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NEXRAD ─────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-nexrad">
+    <div class="card">
+      <h2>NEXRAD Radar Reflectivity</h2>
+      <p class="desc">Plots base reflectivity from a NEXRAD site centered on a given lat/lon.</p>
+      <div class="grid">
+        <div class="field">
+          <label>Site ID <span style="color:var(--error)">*</span></label>
+          <input id="nex-site" type="text" placeholder="KTBW" />
+          <span class="hint">e.g. KTBW, TJUA</span>
+        </div>
+        <div class="field">
+          <label>Date <span style="color:var(--error)">*</span></label>
+          <input id="nex-date" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="field">
+          <label>Time (UTC) <span style="color:var(--error)">*</span></label>
+          <input id="nex-time" type="text" placeholder="1800" maxlength="4" />
+        </div>
+        <div class="field">
+          <label>Latitude <span style="color:var(--error)">*</span></label>
+          <input id="nex-lat" type="text" placeholder="25.0" />
+        </div>
+        <div class="field">
+          <label>Longitude <span style="color:var(--error)">*</span></label>
+          <input id="nex-lon" type="text" placeholder="-80.0" />
+        </div>
+        <div class="field">
+          <label>Colormap</label>
+          <input id="nex-cmap" type="text" placeholder="ref10" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+          <label>Zoom</label>
+          <input id="nex-zoom" type="text" placeholder="1" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+      </div>
+      <button class="submit" onclick="runNexrad()">Generate Plot</button>
+      <div class="status" id="nex-status"></div>
+      <div class="result" id="nex-result">
+        <img id="nex-img" src="" alt="Generated plot" />
+        <div class="links">
+          <a id="nex-img-link"   href="#" target="_blank">Open image</a>
+          <a id="nex-radar-link" href="#" target="_blank">Download radar file</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MCFETCH ────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-mcfetch">
+    <div class="card">
+      <h2>McIDAS Satellite Fetch</h2>
+      <p class="desc">Fetches and plots satellite data via the SSEC McIDAS server.</p>
+      <div class="grid">
+        <div class="field">
+          <label>Satellite <span style="color:var(--error)">*</span></label>
+          <input id="mc-satellite" type="text" placeholder="GOES-16" />
+        </div>
+        <div class="field">
+          <label>Date <span style="color:var(--error)">*</span></label>
+          <input id="mc-date" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="field">
+          <label>Time (UTC) <span style="color:var(--error)">*</span></label>
+          <input id="mc-time" type="text" placeholder="1800" maxlength="4" />
+        </div>
+        <div class="field">
+          <label>Latitude <span style="color:var(--error)">*</span></label>
+          <input id="mc-lat" type="text" placeholder="25.0" />
+        </div>
+        <div class="field">
+          <label>Longitude <span style="color:var(--error)">*</span></label>
+          <input id="mc-lon" type="text" placeholder="-80.0" />
+        </div>
+        <div class="field">
+          <label>Band <span style="color:var(--error)">*</span></label>
+          <input id="mc-band" type="text" placeholder="13" />
+        </div>
+        <div class="field">
+          <label>Colormap</label>
+          <input id="mc-cmap" type="text" placeholder="irg" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+          <label>Zoom (max 2)</label>
+          <input id="mc-zoom" type="text" placeholder="2" class="optional" />
+          <span class="hint">Optional</span>
+        </div>
+      </div>
+      <button class="submit" onclick="runMcfetch()">Generate Plot</button>
+      <div class="status" id="mc-status"></div>
+      <div class="result" id="mc-result">
+        <img id="mc-img" src="" alt="Generated plot" />
+        <div class="links">
+          <a id="mc-img-link" href="#" target="_blank">Open image</a>
+          <a id="mc-nc-link"  href="#" target="_blank">Download .nc</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HAFS ──────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-hafs">
+    <div class="card">
+      <h2>HAFS Model Diagnostic Plot</h2>
+      <p class="desc">Plots diagnostic fields from the Hurricane Analysis and Forecast System (HAFS).</p>
+      <div class="grid">
+        <div class="field">
+          <label>Storm ID <span style="color:var(--error)">*</span></label>
+          <input id="hafs-storm" type="text" placeholder="09a" />
+          <span class="hint">NNX format, e.g. 09a, 09l</span>
+        </div>
+        <div class="field">
+          <label>Init Date <span style="color:var(--error)">*</span></label>
+          <input id="hafs-date" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="field">
+          <label>Init Hour (UTC) <span style="color:var(--error)">*</span></label>
+          <input id="hafs-init" type="text" placeholder="00" maxlength="2" />
+          <span class="hint">00, 06, 12, 18</span>
+        </div>
+        <div class="field">
+          <label>Forecast Hour <span style="color:var(--error)">*</span></label>
+          <input id="hafs-fhour" type="text" placeholder="024" maxlength="3" />
+          <span class="hint">e.g. 024, 048</span>
+        </div>
+        <div class="field">
+          <label>Variable <span style="color:var(--error)">*</span></label>
+          <input id="hafs-var" type="text" placeholder="temp" />
+          <span class="hint">temp, wind, rh, vort, pwat, cape, sst, slp, shear…</span>
+        </div>
+        <div class="field">
+          <label>Level (hPa)</label>
+          <input id="hafs-level" type="text" placeholder="850" class="optional" />
+          <span class="hint">Optional, e.g. 850</span>
+        </div>
+        <div class="field">
+          <label>Model variant</label>
+          <input id="hafs-model" type="text" placeholder="a" maxlength="1" class="optional" />
+          <span class="hint">Optional: a or b</span>
+        </div>
+        <div class="field">
+          <label>Domain</label>
+          <input id="hafs-domain" type="text" placeholder="storm" class="optional" />
+          <span class="hint">Optional: storm or synoptic</span>
+        </div>
+      </div>
+      <button class="submit" onclick="runHafs()">Generate Plot</button>
+      <div class="status" id="hafs-status"></div>
+      <div class="result" id="hafs-result">
+        <img id="hafs-img" src="" alt="Generated plot" />
+        <div class="links">
+          <a id="hafs-img-link" href="#" target="_blank">Open image</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  // ---------------------------------------------------------------------------
+  // Tab switching
+  // ---------------------------------------------------------------------------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  function apiBase() {
+    return document.getElementById('apiBase').value.replace(/\/$/, '');
+  }
+
+  function val(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  function setStatus(prefix, type, msg) {
+    const el = document.getElementById(prefix + '-status');
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  function showResult(prefix, data, imageKey, extraKey, extraLabel) {
+    const base = apiBase();
+    const imgEl    = document.getElementById(prefix + '-img');
+    const imgLink  = document.getElementById(prefix + '-img-link');
+    const extraLink = document.getElementById(prefix + '-' + extraKey + '-link');
+    const result   = document.getElementById(prefix + '-result');
+
+    const imgUrl = base + data[imageKey] + '?t=' + Date.now(); // cache-bust
+    imgEl.src = imgUrl;
+    imgLink.href = imgUrl;
+    if (extraLink && data[extraKey]) {
+      extraLink.href = base + data[extraKey];
+      extraLink.textContent = extraLabel;
+    }
+    result.classList.add('visible');
+  }
+
+  function setLoading(prefix, btn) {
+    setStatus(prefix, 'loading', 'Generating — this may take a minute...');
+    document.getElementById(prefix + '-result').classList.remove('visible');
+    btn.disabled = true;
+  }
+
+  function setDone(prefix, btn) {
+    setStatus(prefix, 'success', 'Done.');
+    btn.disabled = false;
+  }
+
+  function setError(prefix, btn, detail) {
+    setStatus(prefix, 'error', 'Error:\n' + detail);
+    btn.disabled = false;
+  }
+
+  async function callAPI(endpoint, params) {
+    const url = new URL(apiBase() + endpoint);
+    Object.entries(params).forEach(([k, v]) => { if (v) url.searchParams.set(k, v); });
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(body.detail || res.statusText);
+    }
+    return res.json();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Plot
+  // ---------------------------------------------------------------------------
+  async function runPlot() {
+    const btn = event.target;
+    setLoading('plot', btn);
+    try {
+      const data = await callAPI('/plot', {
+        satellite: val('plot-satellite'),
+        date:      val('plot-date'),
+        time:      val('plot-time'),
+        lat:       val('plot-lat'),
+        lon:       val('plot-lon'),
+        band:      val('plot-band'),
+        cmap:      val('plot-cmap'),
+        zoom:      val('plot-zoom'),
+      });
+      showResult('plot', data, 'image_url', 'nc', 'Download .nc');
+      document.getElementById('plot-nc-link').href = apiBase() + data.nc_url;
+      setDone('plot', btn);
+    } catch (e) { setError('plot', btn, e.message); }
+  }
+
+  // ---------------------------------------------------------------------------
+  // NEXRAD
+  // ---------------------------------------------------------------------------
+  async function runNexrad() {
+    const btn = event.target;
+    setLoading('nex', btn);
+    try {
+      const data = await callAPI('/nexrad', {
+        site: val('nex-site'),
+        date: val('nex-date'),
+        time: val('nex-time'),
+        lat:  val('nex-lat'),
+        lon:  val('nex-lon'),
+        cmap: val('nex-cmap'),
+        zoom: val('nex-zoom'),
+      });
+      showResult('nex', data, 'image_url', 'radar', 'Download radar file');
+      document.getElementById('nex-radar-link').href = apiBase() + data.radar_url;
+      setDone('nex', btn);
+    } catch (e) { setError('nex', btn, e.message); }
+  }
+
+  // ---------------------------------------------------------------------------
+  // McIDAS Fetch
+  // ---------------------------------------------------------------------------
+  async function runMcfetch() {
+    const btn = event.target;
+    setLoading('mc', btn);
+    try {
+      const data = await callAPI('/mcfetch', {
+        satellite: val('mc-satellite'),
+        date:      val('mc-date'),
+        time:      val('mc-time'),
+        lat:       val('mc-lat'),
+        lon:       val('mc-lon'),
+        band:      val('mc-band'),
+        cmap:      val('mc-cmap'),
+        zoom:      val('mc-zoom'),
+      });
+      showResult('mc', data, 'image_url', 'nc', 'Download .nc');
+      document.getElementById('mc-nc-link').href = apiBase() + data.nc_url;
+      setDone('mc', btn);
+    } catch (e) { setError('mc', btn, e.message); }
+  }
+
+  // ---------------------------------------------------------------------------
+  // HAFS
+  // ---------------------------------------------------------------------------
+  async function runHafs() {
+    const btn = event.target;
+    setLoading('hafs', btn);
+    try {
+      const data = await callAPI('/hafs', {
+        storm:  val('hafs-storm'),
+        date:   val('hafs-date'),
+        init:   val('hafs-init'),
+        fhour:  val('hafs-fhour'),
+        var:    val('hafs-var'),
+        level:  val('hafs-level'),
+        model:  val('hafs-model'),
+        domain: val('hafs-domain'),
+      });
+      const base = apiBase();
+      const imgUrl = base + data.image_url + '?t=' + Date.now();
+      document.getElementById('hafs-img').src = imgUrl;
+      document.getElementById('hafs-img-link').href = imgUrl;
+      document.getElementById('hafs-result').classList.add('visible');
+      setDone('hafs', btn);
+    } catch (e) { setError('hafs', btn, e.message); }
+  }
+</script>
+</body>
+</html>

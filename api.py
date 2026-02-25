@@ -2,7 +2,6 @@ import os
 import asyncio
 import traceback
 import tempfile
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
@@ -18,28 +17,15 @@ os.environ['CYCLOBOT_OUTPUTS'] = OUTPUTS  # propagate to the plotting modules
 
 import plotCommand as plot
 import mcfetching as mcfetch
-import ibtracsParser
 import hafs as hafs_module
 
-# ---------------------------------------------------------------------------
-# Startup: load IBTrACS once
-# ---------------------------------------------------------------------------
+# IBTrACS not loaded on the web — storm-name zoom is not supported here
 ibtracsCSV = None
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global ibtracsCSV
-    try:
-        ibtracsCSV = ibtracsParser.loadCSV()
-        print('IBTrACS loaded.')
-    except Exception as e:
-        print(f'IBTrACS load failed: {e}')
-    yield
 
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-app = FastAPI(title='CycloBot API', lifespan=lifespan)
+app = FastAPI(title='CycloBot API')
 
 app.add_middleware(
     CORSMiddleware,
@@ -150,4 +136,4 @@ async def hafs_endpoint(
 
 @app.get('/health')
 async def health():
-    return {'status': 'ok', 'ibtracs_loaded': ibtracsCSV is not None}
+    return {'status': 'ok'}

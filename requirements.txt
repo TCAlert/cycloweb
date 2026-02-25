@@ -15,4 +15,3 @@ netCDF4
 h5netcdf
 psutil
 pyproj
-nexradlevel2

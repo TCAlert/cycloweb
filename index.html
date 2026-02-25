@@ -142,7 +142,7 @@
 
 <header>
   <h1>CycloBot Web</h1>
-  <span>Satellite &amp; Radar Imagery</span>
+  <span>Satellite Imagery &amp; Model Diagnostics</span>
 </header>
 
 <div class="container">
@@ -150,7 +150,6 @@
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" data-tab="plot">Plot (GOES/Himawari)</button>
-    <button class="tab-btn"       data-tab="nexrad">NEXRAD</button>
     <button class="tab-btn"       data-tab="mcfetch">McIDAS Fetch</button>
     <button class="tab-btn"       data-tab="hafs">HAFS</button>
   </div>
@@ -205,56 +204,6 @@
         <div class="links">
           <a id="plot-img-link"  href="#" target="_blank">Open image</a>
           <a id="plot-nc-link"   href="#" target="_blank">Download .nc</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── NEXRAD ─────────────────────────────────────────────── -->
-  <div class="tab-panel" id="tab-nexrad">
-    <div class="card">
-      <h2>NEXRAD Radar Reflectivity</h2>
-      <p class="desc">Plots base reflectivity from a NEXRAD site centered on a given lat/lon.</p>
-      <div class="grid">
-        <div class="field">
-          <label>Site ID <span style="color:var(--error)">*</span></label>
-          <input id="nex-site" type="text" placeholder="KTBW" />
-          <span class="hint">e.g. KTBW, TJUA</span>
-        </div>
-        <div class="field">
-          <label>Date <span style="color:var(--error)">*</span></label>
-          <input id="nex-date" type="text" placeholder="MM/DD/YYYY" />
-        </div>
-        <div class="field">
-          <label>Time (UTC) <span style="color:var(--error)">*</span></label>
-          <input id="nex-time" type="text" placeholder="1800" maxlength="4" />
-        </div>
-        <div class="field">
-          <label>Latitude <span style="color:var(--error)">*</span></label>
-          <input id="nex-lat" type="text" placeholder="25.0" />
-        </div>
-        <div class="field">
-          <label>Longitude <span style="color:var(--error)">*</span></label>
-          <input id="nex-lon" type="text" placeholder="-80.0" />
-        </div>
-        <div class="field">
-          <label>Colormap</label>
-          <input id="nex-cmap" type="text" placeholder="ref10" class="optional" />
-          <span class="hint">Optional</span>
-        </div>
-        <div class="field">
-          <label>Zoom</label>
-          <input id="nex-zoom" type="text" placeholder="1" class="optional" />
-          <span class="hint">Optional</span>
-        </div>
-      </div>
-      <button class="submit" onclick="runNexrad()">Generate Plot</button>
-      <div class="status" id="nex-status"></div>
-      <div class="result" id="nex-result">
-        <img id="nex-img" src="" alt="Generated plot" />
-        <div class="links">
-          <a id="nex-img-link"   href="#" target="_blank">Open image</a>
-          <a id="nex-radar-link" href="#" target="_blank">Download radar file</a>
         </div>
       </div>
     </div>
@@ -466,28 +415,6 @@
       document.getElementById('plot-nc-link').href = apiBase() + data.nc_url;
       setDone('plot', btn);
     } catch (e) { setError('plot', btn, e.message); }
-  }
-
-  // ---------------------------------------------------------------------------
-  // NEXRAD
-  // ---------------------------------------------------------------------------
-  async function runNexrad() {
-    const btn = event.target;
-    setLoading('nex', btn);
-    try {
-      const data = await callAPI('/nexrad', {
-        site: val('nex-site'),
-        date: val('nex-date'),
-        time: val('nex-time'),
-        lat:  val('nex-lat'),
-        lon:  val('nex-lon'),
-        cmap: val('nex-cmap'),
-        zoom: val('nex-zoom'),
-      });
-      showResult('nex', data, 'image_url', 'radar', 'Download radar file');
-      document.getElementById('nex-radar-link').href = apiBase() + data.radar_url;
-      setDone('nex', btn);
-    } catch (e) { setError('nex', btn, e.message); }
   }
 
   // ---------------------------------------------------------------------------

@@ -87,28 +87,6 @@ async def plot_endpoint(
         raise HTTPException(status_code=500, detail=traceback.format_exc())
 
 
-@app.get('/nexrad', summary='NEXRAD radar reflectivity plot')
-async def nexrad_endpoint(
-    site: str = Query(..., description='NEXRAD site ID, e.g. KTBW, TJUA'),
-    date: str = Query(..., description='Date in MM/DD/YYYY format'),
-    time: str = Query(..., description='Time as 4-digit UTC, e.g. 1800'),
-    lat:  str = Query(..., description='Center latitude'),
-    lon:  str = Query(..., description='Center longitude'),
-    cmap: Optional[str] = Query(None, description='Colormap name (optional)'),
-    zoom: Optional[str] = Query(None, description='Zoom level (optional)'),
-):
-    try:
-        extra = [a for a in [cmap, zoom] if a is not None]
-        filename = await run_blocking(
-            plot.nexrad, site, date, time, lat, lon, *extra
-        )
-        return {
-            'image_url':  f'/outputs/stormrad.png',
-            'radar_url':  f'/outputs/{filename}',
-        }
-    except Exception:
-        raise HTTPException(status_code=500, detail=traceback.format_exc())
-
 
 @app.get('/mcfetch', summary='McIDAS satellite fetch plot')
 async def mcfetch_endpoint(

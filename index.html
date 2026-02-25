@@ -232,14 +232,16 @@
     .ref-table td.note { color: #666; }
     .ref-table tr:nth-child(even) td { background: #f8f8f8; }
 
-    .swatch {
-      display: inline-block;
-      width: 56px;
-      height: 9px;
-      vertical-align: middle;
-      margin-right: 3px;
-      border: 1px solid #ccc;
-      flex-shrink: 0;
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .2rem .35rem;
+      font-size: 11px;
+    }
+    .tag-list span {
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      padding: .05rem .3rem;
     }
 
     /* ── Mobile ── */
@@ -476,45 +478,54 @@
           <div>
             <div class="ref-section">
               <h3>IR COLORMAPS</h3>
-              <table class="ref-table">
-                <tr><td class="code">irg</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#261940,#000,#ff2929,#ffff29,#4c8032,#fff,#090926,#b55555)"></span>default</td></tr>
-                <tr><td class="code">gs</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000)"></span>grayscale</td></tr>
-                <tr><td class="code">bd</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#a8d1ff,#011a36,#fafafa,#d2d2d2,#000,#9a9a9a)"></span>classic blue-dark</td></tr>
-                <tr><td class="code">bd2–bd5</td><td class="note">BD variants</td></tr>
-                <tr><td class="code">nhc</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fcfcfc,#fc0000,#00fc00,#0000fc,#000)"></span>NHC style</td></tr>
-                <tr><td class="code">avn</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#585858,#c80000,#fafa00,#0096ff,#fff,#000)"></span>aviation</td></tr>
-                <tr><td class="code">rammb</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#fff,#0000fe,#00fc00,#fb0000,#fcfc00,#fff)"></span>RAMMB</td></tr>
-                <tr><td class="code">funktop</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fcfcfc,#00fc00,#fc0000,#00fcfc,#f8f800,#d8d8d8,#000)"></span>funky cold tops</td></tr>
-                <tr><td class="code">rainbow</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#00f,#0ff,#0f0,#ff0,#f80,#f00)"></span>full spectrum</td></tr>
-                <tr><td class="code">spooky</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000,#590401,#eb8415,#f5e2c1,#fff,#2a084d)"></span>halloween</td></tr>
-                <tr><td class="code">lava</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#7a84cc,#fff,#f09c43,#8a2727,#f26555,#eddb82,#2e271d)"></span>lava</td></tr>
-                <tr><td class="code">ice</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#857b33,#12247d,#75d8d8,#0f63bc,#000,#d1d8e2)"></span>icy blues</td></tr>
-                <tr><td class="code">volcano</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#6565ff,#000,#db502f,#efe47d,#fff,#1f0038,#d46c22)"></span>volcanic</td></tr>
-                <tr><td class="code">candy</td><td class="note">pastel tones</td></tr>
-                <tr><td class="code">shrek</td><td class="note">green-toned</td></tr>
-                <tr><td class="code">cody</td><td class="note">custom IR</td></tr>
-                <tr><td class="code">wu</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#7a7a7a,#e2dfde,#014bb4,#189010,#ffff00,#f00)"></span>Weather Underground</td></tr>
-                <tr><td class="code">ir / ira–irz</td><td class="note">numbered custom series</td></tr>
-              </table>
+              <div class="tag-list">
+                <span>gs</span><span>avn</span><span>funktop</span><span>jsl</span>
+                <span>rainbow</span><span>rainbow2</span>
+                <span>rbtop</span><span>rbtop2</span><span>rbtop2.5</span><span>rbtop3</span><span>rbtop4</span><span>rbtop5</span>
+                <span>bd</span><span>bd.5</span><span>bd2</span><span>bd3</span><span>bd4</span><span>bd5</span>
+                <span>rbbd</span><span>rammb</span><span>nhc</span><span>wu</span><span>shrek</span><span>hand</span>
+                <span>ryglicki</span><span>candy</span><span>bl</span><span>blcold</span><span>spooky</span>
+                <span>lava</span><span>ice</span><span>icy</span><span>ice2</span>
+                <span>santa</span><span>gay</span><span>cody</span><span>oldcody</span><span>icecream</span>
+                <span>asir</span><span>volcano</span><span>cloudy</span><span>cs</span><span>ncdc</span>
+                <span>cmyk</span><span>mean</span><span>wind</span><span>wind2</span><span>icup</span>
+                <span>chatgpt</span><span>chatgpt2</span><span>chatgpt3</span><span>chatgpt4</span><span>o2</span>
+                <span>ibtracs</span><span>ibtracs2</span><span>ibtracs3</span>
+                <span>cu</span><span>blob</span><span>msfcir1</span><span>codyir</span>
+                <span>ir</span><span>ira</span><span>irb</span><span>irc</span><span>ird</span><span>ire</span>
+                <span>irf</span><span>irg</span><span>irh</span><span>iri</span><span>irj</span><span>irk</span>
+                <span>irl</span><span>irm</span><span>irn</span><span>iro</span><span>irp</span><span>irq</span>
+                <span>irr</span><span>irs</span><span>irt</span><span>iru</span><span>irv</span><span>irw</span>
+                <span>irx</span><span>iry</span><span>irz</span><span>oldirg</span><span>irca</span>
+                <span>ir1</span><span>ir2</span><span>ir3</span><span>ir4</span><span>ir5</span><span>ir6</span>
+                <span>ir7</span><span>ir8</span><span>ir9</span><span>ir10</span><span>ir11</span><span>ir12</span>
+                <span>ir13</span><span>ir14</span><span>ir15</span><span>ir16</span><span>ir17</span><span>ir18</span>
+                <span>ir19</span><span>ir20</span><span>ir21</span><span>ir22</span><span>ir23</span><span>ir24</span>
+                <span>ir25</span><span>ir26</span><span>ir27</span><span>ir28</span><span>ir29</span><span>ir30</span>
+                <span>ir31</span><span>ref</span><span>test</span>
+              </div>
             </div>
 
             <div class="ref-section">
               <h3>WV COLORMAPS</h3>
-              <table class="ref-table">
-                <tr><td class="code">wv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#b3afaf,#30453d,#89d9a7,#465185,#e3e1de,#a85432,#1f1e1c,#696563)"></span>standard</td></tr>
-                <tr><td class="code">gs</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000)"></span>grayscale</td></tr>
-                <tr><td class="code">irg</td><td class="note">IR-like gray-green</td></tr>
-                <tr><td class="code">codywv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#fbca0c,#d92028,#03062f,#64bddf,#ededed,#fcd100)"></span>Cody</td></tr>
-                <tr><td class="code">mikewv</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#8927f4,#274397,#44b8cf,#f2f1f6,#d2352c,#fdbf20,#1b1a17)"></span>Mike</td></tr>
-                <tr><td class="code">ghost</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#000,#7cabb9,#48518c,#301830,#62526e)"></span>faded dark</td></tr>
-                <tr><td class="code">bajaflash</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#000,#e3ba24,#fff,#7cabb9,#48518c,#301830,#62526e)"></span>orange flash</td></tr>
-                <tr><td class="code">msfc</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#dfdfdf,#9a0b09,#d51312,#d4d925,#266775,#c7c9ca,#000)"></span>MSFC</td></tr>
-                <tr><td class="code">uv</td><td class="note">UV purple-blue</td></tr>
-                <tr><td class="code">ssd</td><td class="note"><span class="swatch" style="background:linear-gradient(to right,#fff,#005082,#009696,#fa3200,#9600dc,#0000e2,#fff)"></span>SSD colorful</td></tr>
-                <tr><td class="code">dark</td><td class="note">dark gray</td></tr>
-                <tr><td class="code">aswv</td><td class="note">AS custom</td></tr>
-                <tr><td class="code">wv2–wv53</td><td class="note">numbered variants</td></tr>
-              </table>
+              <div class="tag-list">
+                <span>wv</span>
+                <span>wv2</span><span>wv3</span><span>wv4</span><span>wv5</span><span>wv6</span><span>wv7</span>
+                <span>wv8</span><span>wv9</span><span>wv9.5</span><span>wv10</span><span>wv11</span><span>wv12</span>
+                <span>wv13</span><span>wv13.5</span><span>wv14</span><span>wv15</span><span>wv16</span><span>wv17</span>
+                <span>wv18</span><span>wv19</span><span>wv20</span><span>wv21</span><span>wv22</span><span>wv23</span>
+                <span>wv24</span><span>wv25</span><span>wv26</span><span>wv27</span><span>wv28</span><span>wv29</span>
+                <span>wv30</span><span>wv31</span><span>wv32</span><span>wv33</span><span>wv34</span><span>wv35</span>
+                <span>wv36</span><span>wv37</span><span>wv38</span><span>wv39</span><span>wv39.5</span><span>wv40</span>
+                <span>wv41</span><span>wv42</span><span>wv43</span><span>wv44</span><span>wv45</span><span>wv46</span>
+                <span>wv47</span><span>wv48</span><span>wv49</span><span>wv50</span><span>wv51</span><span>wv52</span>
+                <span>wv53</span><span>ghost</span><span>msfc</span><span>psu</span>
+                <span>uv</span><span>fig</span><span>copper</span><span>bajaflash</span>
+                <span>simple</span><span>simple2</span><span>watermelon</span><span>halloween</span>
+                <span>irg</span><span>ssd</span><span>mikewv</span><span>codywv</span>
+                <span>aswv</span><span>aswvold</span><span>gs</span><span>hand</span><span>dark</span><span>oldwv</span>
+                <span>test</span>
+              </div>
             </div>
           </div>
 

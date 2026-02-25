@@ -94,7 +94,7 @@ def nexrad(radar, date, time, lat, lon, cmp = 'ref', zoom = 0):
     radar = radar.upper()
     lat, lon = float(lat), float(lon)
 
-    csv = pd.read_csv(r"C:\Users\deela\Downloads\nexrad_lat_lon.csv")
+    csv = pd.read_csv(os.path.join(os.path.dirname(__file__), 'nexrad_lat_lon.csv'))
     if radar == 'NONE':
         csv['distance'] = greatCircle(lat, lon, csv['Latitude'], csv['Longitude'])
         csv = csv.iloc[csv['distance'].argmin()]

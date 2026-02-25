@@ -7,42 +7,110 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body { height: 100%; }
+
     body {
       background: #fff;
       color: #111;
       font-family: 'Courier New', Courier, monospace;
       font-size: 13px;
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
       border-bottom: 2px solid #111;
-      padding: .6rem 1.5rem;
+      padding: .5rem 1rem;
       display: flex;
       align-items: baseline;
       gap: 1.5rem;
+      flex-shrink: 0;
     }
-    header h1 { font-size: 15px; font-weight: bold; letter-spacing: .05em; }
-    header span { font-size: 12px; color: #555; }
+    header h1 { font-size: 14px; font-weight: bold; letter-spacing: .05em; }
+    header span { font-size: 11px; color: #555; }
 
-    .container { max-width: 820px; margin: 0 auto; padding: 1.25rem 1.5rem; }
+    /* ── Main layout ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
 
-    /* Tabs */
+    /* ── Left panel: parameters ── */
+    .left-panel {
+      width: 230px;
+      flex-shrink: 0;
+      border-right: 1px solid #bbb;
+      padding: .9rem .85rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+
+    .param-panel { display: none; flex-direction: column; gap: .55rem; }
+    .param-panel.active { display: flex; }
+
+    .param-title { font-size: 12px; font-weight: bold; }
+    .param-desc  { font-size: 10px; color: #666; line-height: 1.4; }
+
+    .field { display: flex; flex-direction: column; gap: .15rem; }
+    .field label { font-size: 10px; color: #444; }
+    .field input {
+      background: #fff;
+      border: 1px solid #999;
+      color: #111;
+      font-family: inherit;
+      font-size: 12px;
+      padding: .25rem .35rem;
+      width: 100%;
+    }
+    .field input:focus { outline: 1px solid #111; }
+    .field input.optional { border-style: dashed; }
+    .field .hint { font-size: 10px; color: #888; }
+
+    button.submit {
+      background: #111;
+      border: 1px solid #111;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      padding: .3rem .9rem;
+      align-self: flex-start;
+      margin-top: .2rem;
+    }
+    button.submit:disabled { opacity: .4; cursor: not-allowed; }
+    button.submit:hover:not(:disabled) { background: #333; }
+
+    .status { font-size: 10px; min-height: .9rem; }
+    .status.loading { color: #555; }
+    .status.error   { color: #b00; white-space: pre-wrap; }
+    .status.success { color: #080; }
+
+    /* ── Right panel: tabs + image ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
     .tabs {
       display: flex;
-      gap: 0;
+      justify-content: flex-end;
       border-bottom: 1px solid #aaa;
-      margin-bottom: 1.5rem;
+      flex-shrink: 0;
     }
     .tab-btn {
       background: none;
       border: 1px solid transparent;
       border-bottom: none;
-      color: #555;
+      color: #666;
       cursor: pointer;
       font-family: inherit;
       font-size: 12px;
-      padding: .35rem .9rem;
+      padding: .3rem .85rem;
       margin-bottom: -1px;
     }
     .tab-btn:hover { color: #111; }
@@ -53,81 +121,39 @@
       background: #fff;
     }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* Section heading */
-    .section-title {
-      font-size: 13px;
-      font-weight: bold;
-      margin-bottom: .2rem;
-    }
-    .section-desc {
-      font-size: 11px;
-      color: #666;
-      margin-bottom: 1rem;
+    /* ── Image area ── */
+    .image-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow: auto;
     }
 
-    /* Form grid */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: .5rem .75rem;
-      margin-bottom: .9rem;
-    }
-    .field { display: flex; flex-direction: column; gap: .2rem; }
-    .field label { font-size: 11px; color: #444; }
-    .field input {
-      background: #fff;
-      border: 1px solid #999;
-      color: #111;
-      font-family: inherit;
-      font-size: 12px;
-      padding: .3rem .4rem;
-    }
-    .field input:focus { outline: 1px solid #111; }
-    .field input.optional { border-style: dashed; }
-    .field .hint { font-size: 10px; color: #777; }
-
-    button.submit {
-      background: #111;
-      border: 1px solid #111;
-      color: #fff;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 12px;
-      padding: .35rem 1.1rem;
-    }
-    button.submit:disabled { opacity: .4; cursor: not-allowed; }
-    button.submit:hover:not(:disabled) { background: #333; }
-
-    /* Status */
-    .status {
-      font-size: 11px;
-      margin-top: .5rem;
-      min-height: 1rem;
-    }
-    .status.loading { color: #555; }
-    .status.error   { color: #b00; white-space: pre-wrap; font-size: 10px; }
-    .status.success { color: #080; }
-
-    /* Result */
-    .result { display: none; margin-top: 1rem; }
-    .result.visible { display: block; }
-    .result img {
+    .image-area img {
       max-width: 100%;
-      display: block;
-      border: 1px solid #ccc;
-      margin-bottom: .5rem;
+      max-height: 100%;
+      object-fit: contain;
+      display: none;
+      border: 1px solid #ddd;
     }
-    .result .links { display: flex; gap: 1rem; }
-    .result .links a {
-      color: #111;
-      font-size: 11px;
-      text-decoration: underline;
-    }
+    .image-area img.visible { display: block; }
 
-    hr { border: none; border-top: 1px solid #ddd; margin: 1.25rem 0; }
+    .image-links {
+      display: none;
+      gap: 1rem;
+      margin-top: .4rem;
+      font-size: 11px;
+    }
+    .image-links.visible { display: flex; }
+    .image-links a { color: #111; text-decoration: underline; }
+
+    .image-placeholder {
+      font-size: 11px;
+      color: #bbb;
+    }
   </style>
 </head>
 <body>
@@ -137,19 +163,14 @@
   <span>Satellite Imagery &amp; Model Diagnostics / Deelan Jariwala</span>
 </header>
 
-<div class="container">
+<div class="layout">
 
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
-    <button class="tab-btn"       data-tab="mcfetch">McIDAS</button>
-    <button class="tab-btn"       data-tab="hafs">HAFS</button>
-  </div>
+  <!-- ── Left: parameter forms ── -->
+  <div class="left-panel">
 
-  <!-- ── PLOT ──────────────────────────────────────────────── -->
-  <div class="tab-panel active" id="tab-plot">
-    <div class="section-title">Satellite IR / Water Vapor</div>
-    <div class="section-desc">GOES-R (16/18/19) and Himawari (8/9) full-disk channels via AWS.</div>
-    <div class="grid">
+    <div class="param-panel active" id="params-plot">
+      <div class="param-title">GOES / Himawari</div>
+      <div class="param-desc">GOES-R (16/18/19) and Himawari (8/9) via AWS.</div>
       <div class="field">
         <label>SATELLITE</label>
         <input id="plot-satellite" type="text" placeholder="16, 18, H9" />
@@ -186,23 +207,13 @@
         <input id="plot-zoom" type="text" placeholder="2" class="optional" />
         <span class="hint">optional</span>
       </div>
+      <button class="submit" onclick="runPlot()">run</button>
+      <div class="status" id="plot-status"></div>
     </div>
-    <button class="submit" onclick="runPlot()">run</button>
-    <div class="status" id="plot-status"></div>
-    <div class="result" id="plot-result">
-      <img id="plot-img" src="" alt="" />
-      <div class="links">
-        <a id="plot-img-link" href="#" target="_blank">open image</a>
-        <a id="plot-nc-link"  href="#" target="_blank">download .nc</a>
-      </div>
-    </div>
-  </div>
 
-  <!-- ── MCFETCH ────────────────────────────────────────────── -->
-  <div class="tab-panel" id="tab-mcfetch">
-    <div class="section-title">McIDAS Satellite Fetch</div>
-    <div class="section-desc">Older geostationary archive via SSEC McIDAS server. Covers GOES 1–15, GMS, MTSAT, early Himawari.</div>
-    <div class="grid">
+    <div class="param-panel" id="params-mcfetch">
+      <div class="param-title">McIDAS</div>
+      <div class="param-desc">Older geostationary archive via SSEC. Covers GOES 1–15, GMS, MTSAT, early Himawari.</div>
       <div class="field">
         <label>SATELLITE</label>
         <input id="mc-satellite" type="text" placeholder="G8, G12, 8" />
@@ -238,23 +249,13 @@
         <input id="mc-zoom" type="text" placeholder="2" class="optional" />
         <span class="hint">optional</span>
       </div>
+      <button class="submit" onclick="runMcfetch()">run</button>
+      <div class="status" id="mc-status"></div>
     </div>
-    <button class="submit" onclick="runMcfetch()">run</button>
-    <div class="status" id="mc-status"></div>
-    <div class="result" id="mc-result">
-      <img id="mc-img" src="" alt="" />
-      <div class="links">
-        <a id="mc-img-link" href="#" target="_blank">open image</a>
-        <a id="mc-nc-link"  href="#" target="_blank">download .nc</a>
-      </div>
-    </div>
-  </div>
 
-  <!-- ── HAFS ──────────────────────────────────────────────── -->
-  <div class="tab-panel" id="tab-hafs">
-    <div class="section-title">HAFS Model Diagnostics</div>
-    <div class="section-desc">Hurricane Analysis and Forecast System (HAFS-A/B) real-time output.</div>
-    <div class="grid">
+    <div class="param-panel" id="params-hafs">
+      <div class="param-title">HAFS</div>
+      <div class="param-desc">Hurricane Analysis and Forecast System (HAFS-A/B) real-time output.</div>
       <div class="field">
         <label>STORM</label>
         <input id="hafs-storm" type="text" placeholder="09l" />
@@ -294,26 +295,39 @@
         <input id="hafs-domain" type="text" placeholder="storm" class="optional" />
         <span class="hint">storm or synoptic</span>
       </div>
+      <button class="submit" onclick="runHafs()">run</button>
+      <div class="status" id="hafs-status"></div>
     </div>
-    <button class="submit" onclick="runHafs()">run</button>
-    <div class="status" id="hafs-status"></div>
-    <div class="result" id="hafs-result">
-      <img id="hafs-img" src="" alt="" />
-      <div class="links">
-        <a id="hafs-img-link" href="#" target="_blank">open image</a>
+
+  </div><!-- /left-panel -->
+
+  <!-- ── Right: tabs + image ── -->
+  <div class="right-panel">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
+      <button class="tab-btn"        data-tab="mcfetch">McIDAS</button>
+      <button class="tab-btn"        data-tab="hafs">HAFS</button>
+    </div>
+    <div class="image-area">
+      <span class="image-placeholder" id="img-placeholder">output will appear here</span>
+      <img id="result-img" src="" alt="" />
+      <div class="image-links" id="result-links">
+        <a id="link-img"  href="#" target="_blank">open image</a>
+        <a id="link-extra" href="#" target="_blank" style="display:none"></a>
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- /layout -->
 
 <script>
+  // Tab switching
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.param-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      document.getElementById('params-' + btn.dataset.tab).classList.add('active');
     });
   });
 
@@ -327,9 +341,26 @@
     el.textContent = msg;
   }
 
+  function showImage(imgUrl, extraUrl, extraLabel) {
+    document.getElementById('img-placeholder').style.display = 'none';
+    const img = document.getElementById('result-img');
+    img.src = imgUrl;
+    img.classList.add('visible');
+    document.getElementById('link-img').href = imgUrl;
+    const links = document.getElementById('result-links');
+    links.classList.add('visible');
+    const extra = document.getElementById('link-extra');
+    if (extraUrl) {
+      extra.href = extraUrl;
+      extra.textContent = extraLabel;
+      extra.style.display = '';
+    } else {
+      extra.style.display = 'none';
+    }
+  }
+
   function setLoading(prefix, btn) {
     setStatus(prefix, 'loading', 'working...');
-    document.getElementById(prefix + '-result').classList.remove('visible');
     btn.disabled = true;
   }
 
@@ -368,11 +399,7 @@
         cmap:      val('plot-cmap'),
         zoom:      val('plot-zoom'),
       });
-      const imgUrl = API_BASE + data.image_url + '?t=' + Date.now();
-      document.getElementById('plot-img').src = imgUrl;
-      document.getElementById('plot-img-link').href = imgUrl;
-      document.getElementById('plot-nc-link').href = API_BASE + data.nc_url;
-      document.getElementById('plot-result').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), API_BASE + data.nc_url, 'download .nc');
       setDone('plot', btn);
     } catch (e) { setError('plot', btn, e.message); }
   }
@@ -391,11 +418,7 @@
         cmap:      val('mc-cmap'),
         zoom:      val('mc-zoom'),
       });
-      const imgUrl = API_BASE + data.image_url + '?t=' + Date.now();
-      document.getElementById('mc-img').src = imgUrl;
-      document.getElementById('mc-img-link').href = imgUrl;
-      document.getElementById('mc-nc-link').href = API_BASE + data.nc_url;
-      document.getElementById('mc-result').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), API_BASE + data.nc_url, 'download .nc');
       setDone('mc', btn);
     } catch (e) { setError('mc', btn, e.message); }
   }
@@ -414,10 +437,7 @@
         model:  val('hafs-model'),
         domain: val('hafs-domain'),
       });
-      const imgUrl = API_BASE + data.image_url + '?t=' + Date.now();
-      document.getElementById('hafs-img').src = imgUrl;
-      document.getElementById('hafs-img-link').href = imgUrl;
-      document.getElementById('hafs-result').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('hafs', btn);
     } catch (e) { setError('hafs', btn, e.message); }
   }

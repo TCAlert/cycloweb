@@ -589,6 +589,47 @@
       <div class="status" id="er-status"></div>
     </div>
 
+    <div class="param-panel" id="params-era5">
+      <div class="param-title">ERA5 Reanalysis</div>
+      <div class="param-desc">0.25° ERA5 pressure-level and surface diagnostic plots via CDS API.</div>
+      <div class="field">
+        <label>LAT</label>
+        <input id="e5-lat" type="text" placeholder="17" />
+      </div>
+      <div class="field">
+        <label>LON</label>
+        <input id="e5-lon" type="text" placeholder="-59" />
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="e5-month" type="text" placeholder="9" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>DAY</label>
+        <input id="e5-day" type="text" placeholder="3" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>YEAR</label>
+        <input id="e5-year" type="text" placeholder="2022" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>HOUR (UTC)</label>
+        <input id="e5-hour" type="text" placeholder="12" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>PLOTTYPE</label>
+        <input id="e5-plottype" type="text" placeholder="wind" />
+        <span class="hint">wind temp tempadv thetae divergence rh windplot tempplot dewplot mslp sheardiag</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="e5-level" type="text" placeholder="850" class="optional" />
+        <span class="hint">hPa — required for pressure-level plots</span>
+      </div>
+      <button class="submit" onclick="runEra5()">run</button>
+      <div class="status" id="e5-status"></div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
@@ -602,6 +643,7 @@
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
       <button class="tab-btn"        data-tab="hrrr">HRRR</button>
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
+      <button class="tab-btn"        data-tab="era5">ERA5</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -967,6 +1009,62 @@
         </div>
       </div><!-- /ref-ersst -->
 
+      <!-- ERA5 reference -->
+      <div class="ref-panel" id="ref-era5">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PARAMETERS</h3>
+              <table class="ref-table">
+                <tr><td class="code">lat / lon</td><td class="note">Center coordinate</td></tr>
+                <tr><td class="code">month</td><td class="note">Month number (1–12)</td></tr>
+                <tr><td class="code">day</td><td class="note">Day of month</td></tr>
+                <tr><td class="code">year</td><td class="note">4-digit year</td></tr>
+                <tr><td class="code">hour</td><td class="note">UTC hour (00–23)</td></tr>
+                <tr><td class="code">plottype</td><td class="note">See plot types below</td></tr>
+                <tr><td class="code">level</td><td class="note">Pressure level (hPa) — required for pressure-level plots</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>PRESSURE-LEVEL PLOTS</h3>
+              <table class="ref-table">
+                <tr><td class="code">wind</td><td class="note">Wind streamlines and magnitude (kts)</td></tr>
+                <tr><td class="code">temp</td><td class="note">Air temperature (°C)</td></tr>
+                <tr><td class="code">tempadv</td><td class="note">Temperature advection (°C/hr)</td></tr>
+                <tr><td class="code">thetae</td><td class="note">Equivalent potential temperature Θe (K)</td></tr>
+                <tr><td class="code">divergence</td><td class="note">Wind divergence (smoothed)</td></tr>
+                <tr><td class="code">rh</td><td class="note">Relative humidity (%)</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>SURFACE PLOTS</h3>
+              <table class="ref-table">
+                <tr><td class="code">windplot</td><td class="note">10m wind field and radial profile</td></tr>
+                <tr><td class="code">tempplot</td><td class="note">10m wind and 2m temperature (°F)</td></tr>
+                <tr><td class="code">dewplot</td><td class="note">10m wind and 2m dewpoint (°F)</td></tr>
+                <tr><td class="code">mslp</td><td class="note">Mean sea level pressure (hPa)</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>SHEAR PLOTS</h3>
+              <table class="ref-table">
+                <tr><td class="code">sheardiag</td><td class="note">Wind shear diagnostics (4 layers) + shear distribution — returns two images</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>NOTES</h3>
+              <table class="ref-table">
+                <tr><td class="code">source</td><td class="note">0.25° ERA5 reanalysis via CDS API</td></tr>
+                <tr><td class="code">domain</td><td class="note">±15° lat / ±20° lon around center (pressure); ±7.5° for windplot</td></tr>
+                <tr><td class="code">sheardiag</td><td class="note">Second image (distribution) linked below output</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-era5 -->
+
     </div><!-- /view-ref -->
 
     <div class="view-toggle">
@@ -991,7 +1089,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1201,6 +1299,26 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('er', btn);
     } catch (e) { setError('er', btn, e.message); }
+  }
+
+  async function runEra5() {
+    const btn = event.target;
+    setLoading('e5', btn);
+    try {
+      const data = await callAPI('/era5', {
+        lat:      val('e5-lat'),
+        lon:      val('e5-lon'),
+        month:    val('e5-month'),
+        day:      val('e5-day'),
+        year:     val('e5-year'),
+        hour:     val('e5-hour'),
+        plottype: val('e5-plottype'),
+        level:    val('e5-level'),
+      });
+      const extra = data.image_url2 ? API_BASE + data.image_url2 + '?t=' + Date.now() : null;
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), extra, 'shear distribution');
+      setDone('e5', btn);
+    } catch (e) { setError('e5', btn, e.message); }
   }
 
   async function runShipsri() {

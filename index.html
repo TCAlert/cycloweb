@@ -429,7 +429,7 @@
       <div class="field">
         <label>DOMAIN</label>
         <input id="hafs-domain" type="text" placeholder="storm" class="optional" />
-        <span class="hint">storm or synoptic</span>
+        <span class="hint">storm or parent</span>
       </div>
       <button class="submit" onclick="runHafs()">run</button>
       <div class="status" id="hafs-status"></div>
@@ -558,13 +558,35 @@
         <input id="hr-level" type="text" placeholder="850" class="optional" />
         <span class="hint">hPa or lower/upper/mid/deep — optional</span>
       </div>
-      <div class="field">
-        <label>DOMAIN</label>
-        <input id="hr-domain" type="text" placeholder="conus" class="optional" />
-        <span class="hint">conus or alaska — optional</span>
-      </div>
       <button class="submit" onclick="runHrrr()">run</button>
       <div class="status" id="hr-status"></div>
+    </div>
+
+    <div class="param-panel" id="params-ersst">
+      <div class="param-title">ERSST Composite</div>
+      <div class="param-desc">ERSSTv5 SST anomaly composites with 30-year sliding climatology via PSL OPeNDAP.</div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="er-month" type="text" placeholder="6" maxlength="2" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="er-years" type="text" placeholder="1997,2015,2023" />
+        <span class="hint">comma-separated</span>
+      </div>
+      <div class="field">
+        <label>TYPE</label>
+        <input id="er-type" type="text" placeholder="anomalies" class="optional" />
+        <span class="hint">anomalies or std — optional</span>
+      </div>
+      <div class="field">
+        <label>STANDARDIZED</label>
+        <input id="er-sd" type="text" placeholder="false" class="optional" />
+        <span class="hint">true or false — optional</span>
+      </div>
+      <button class="submit" onclick="runErsst()">run</button>
+      <div class="status" id="er-status"></div>
     </div>
 
   </div><!-- /left-panel -->
@@ -579,6 +601,7 @@
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
       <button class="tab-btn"        data-tab="hrrr">HRRR</button>
+      <button class="tab-btn"        data-tab="ersst">ERSST</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -734,7 +757,7 @@
                 <tr><td class="code">init</td><td class="note">00 / 06 / 12 / 18</td></tr>
                 <tr><td class="code">fhour</td><td class="note">e.g. 024, 048, 120</td></tr>
                 <tr><td class="code">model</td><td class="note">a (default) or b</td></tr>
-                <tr><td class="code">domain</td><td class="note">storm (default) or synoptic</td></tr>
+                <tr><td class="code">domain</td><td class="note">storm (default) or parent</td></tr>
                 <tr><td class="code">level</td><td class="note">hPa — e.g. 850, 500, 200</td></tr>
                 <tr><td class="code">_s suffix</td><td class="note">smooth once</td></tr>
                 <tr><td class="code">_ss suffix</td><td class="note">smooth twice</td></tr>
@@ -911,6 +934,39 @@
         </div>
       </div><!-- /ref-hrrr -->
 
+      <!-- ERSST reference -->
+      <div class="ref-panel" id="ref-ersst">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PARAMETERS</h3>
+              <table class="ref-table">
+                <tr><td class="code">month</td><td class="note">Month number (1–12)</td></tr>
+                <tr><td class="code">years</td><td class="note">Comma-separated list of years to composite</td></tr>
+                <tr><td class="code">type</td><td class="note">anomalies (default) or std</td></tr>
+                <tr><td class="code">sd</td><td class="note">true = standardized by 30-yr std dev; false = global-mean anomaly</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>OUTPUT</h3>
+              <table class="ref-table">
+                <tr><td class="code">anomalies</td><td class="note">Composite mean SST anomaly across all years</td></tr>
+                <tr><td class="code">std</td><td class="note">Inter-year standard deviation of the anomalies</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>NOTES</h3>
+              <table class="ref-table">
+                <tr><td class="code">source</td><td class="note">NOAA ERSSTv5 monthly mean via PSL OPeNDAP</td></tr>
+                <tr><td class="code">climo</td><td class="note">30-year sliding window (or 1854–1883 if year &lt; 1884)</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-ersst -->
+
     </div><!-- /view-ref -->
 
     <div class="view-toggle">
@@ -935,7 +991,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1126,11 +1182,25 @@
         fhour:  val('hr-fhour'),
         var:    val('hr-var'),
         level:  val('hr-level'),
-        domain: val('hr-domain'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('hr', btn);
     } catch (e) { setError('hr', btn, e.message); }
+  }
+
+  async function runErsst() {
+    const btn = event.target;
+    setLoading('er', btn);
+    try {
+      const data = await callAPI('/ersst', {
+        month: val('er-month'),
+        years: val('er-years'),
+        type:  val('er-type'),
+        sd:    val('er-sd'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('er', btn);
+    } catch (e) { setError('er', btn, e.message); }
   }
 
   async function runShipsri() {

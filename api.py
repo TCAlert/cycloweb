@@ -149,9 +149,10 @@ async def tcprimed_endpoint(
         if datatype is not None:
             kwargs['datatype'] = datatype
         color_bool = str(color).lower() == 'true' if color is not None else False
+        dt = (datatype or 'mid').lower()
         await run_blocking(
             tcprimed_module.plot2, storm.upper(), satellite.upper(), date, time,
-            kwargs.get('datatype', 'mid'), color_bool
+            dt, color_bool
         )
         return {
             'image_url': '/outputs/tcprimed_plot2.png',

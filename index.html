@@ -672,28 +672,28 @@
                 <tr><td class="code">wind</td><td class="note">Wind speed + barbs</td></tr>
                 <tr><td class="code">vvel</td><td class="note">Vertical velocity</td></tr>
                 <tr><td class="code">rh</td><td class="note">Relative humidity</td></tr>
-                <tr><td class="code">vort</td><td class="note">Vorticity</td></tr>
+                <tr><td class="code">vort</td><td class="note">Absolute vorticity (1/s)</td></tr>
                 <tr><td class="code">absv</td><td class="note">Absolute vorticity</td></tr>
                 <tr><td class="code">hgt</td><td class="note">Geopotential height</td></tr>
                 <tr><td class="code">pv</td><td class="note">Potential vorticity</td></tr>
                 <tr><td class="code">theta</td><td class="note">Potential temperature</td></tr>
                 <tr><td class="code">thetae</td><td class="note">Equiv. potential temperature</td></tr>
                 <tr><td class="code">thetae_anom</td><td class="note">Theta-e anomaly</td></tr>
-                <tr><td class="code">ci</td><td class="note">Convective inhibition by level</td></tr>
-                <tr><td class="code">mss</td><td class="note">Moist static stability</td></tr>
-                <tr><td class="code">ss</td><td class="note">Static stability</td></tr>
-                <tr><td class="code">s</td><td class="note">Stability</td></tr>
-                <tr><td class="code">ratio</td><td class="note">Humidity ratio</td></tr>
+                <tr><td class="code">ci</td><td class="note">Coupling Index (K)</td></tr>
+                <tr><td class="code">mss</td><td class="note">Moist Bulk Stability [dThetaE/dZ] (K/m)</td></tr>
+                <tr><td class="code">ss</td><td class="note">Bulk Static Stability [dTheta/dZ] (K/m)</td></tr>
+                <tr><td class="code">s</td><td class="note">Γd − Γ (C/km)</td></tr>
+                <tr><td class="code">ratio</td><td class="note">Reduction Ratio (10m/700mb)</td></tr>
                 <tr><td class="code">tadv / tadv_s / tadv_ss</td><td class="note">Temperature advection</td></tr>
                 <tr><td class="code">mfc / mfc_s / mfc_ss</td><td class="note">Moisture flux convergence</td></tr>
                 <tr><td class="code">div / div_s / div_ss</td><td class="note">Divergence</td></tr>
-                <tr><td class="code">mflx / mflx_s / mflx_ss</td><td class="note">Moisture flux</td></tr>
-                <tr><td class="code">tfp / tfp_s / tfp_ss</td><td class="note">Thermal frontal parameter</td></tr>
-                <tr><td class="code">twp / twp_s / twp_ss</td><td class="note">Total water path</td></tr>
-                <tr><td class="code">thg / thg_s / thg_ss</td><td class="note">Theta gradient</td></tr>
+                <tr><td class="code">mflx / mflx_s / mflx_ss</td><td class="note">Vertical Mass Flux (kg/m²s)</td></tr>
+                <tr><td class="code">tfp / tfp_s / tfp_ss</td><td class="note">Thermal Front Parameter (K/m²)</td></tr>
+                <tr><td class="code">twp / twp_s / twp_ss</td><td class="note">Thermal Wind CPS Approximation (m/s)</td></tr>
+                <tr><td class="code">thg / thg_s / thg_ss</td><td class="note">Thickness Gradient (dimensionless)</td></tr>
                 <tr><td class="code">okw / okw_s / okw_ss</td><td class="note">Okubo-Weiss</td></tr>
                 <tr><td class="code">fgn / fgn_s / fgn_ss</td><td class="note">Frontogenesis</td></tr>
-                <tr><td class="code">diab / diab_s / diab_ss</td><td class="note">Diabatic heating</td></tr>
+                <tr><td class="code">diab / diab_s / diab_ss</td><td class="note">Apparent Heat Source (K/hr)</td></tr>
                 <tr><td class="code">thadv / thadv_s / thadv_ss</td><td class="note">Theta advection</td></tr>
                 <tr><td class="code">thedv / thedv_s / thedv_ss</td><td class="note">Theta-e advection</td></tr>
               </table>
@@ -710,21 +710,21 @@
                 <tr><td class="code">gust</td><td class="note">Wind gusts</td></tr>
                 <tr><td class="code">slp</td><td class="note">Sea level pressure</td></tr>
                 <tr><td class="code">srh</td><td class="note">Storm-relative helicity</td></tr>
-                <tr><td class="code">eff</td><td class="note">Effective layer</td></tr>
-                <tr><td class="code">diseq</td><td class="note">Disequilibrium (MPI−intensity)</td></tr>
-                <tr><td class="code">mpi / mpi_s</td><td class="note">Max potential intensity</td></tr>
-                <tr><td class="code">vpr</td><td class="note">Vorticity pressure-radius</td></tr>
-                <tr><td class="code">chim</td><td class="note">Chimney index</td></tr>
-                <tr><td class="code">vi</td><td class="note">Vorticity index</td></tr>
+                <tr><td class="code">eff</td><td class="note">Carnot Efficiency (%)</td></tr>
+                <tr><td class="code">diseq</td><td class="note">Thermodynamic Disequilibrium (J/kg)</td></tr>
+                <tr><td class="code">mpi / mpi_s</td><td class="note">Maximum Potential Intensity (kt)</td></tr>
+                <tr><td class="code">vpr</td><td class="note">Ventilation Proxy (dimensionless)</td></tr>
+                <tr><td class="code">chim</td><td class="note">Entropy Deficit (dimensionless)</td></tr>
+                <tr><td class="code">vi</td><td class="note">Ventilation Index (dimensionless)</td></tr>
                 <tr><td class="code">lhf</td><td class="note">Latent heat flux</td></tr>
                 <tr><td class="code">shf</td><td class="note">Sensible heat flux</td></tr>
-                <tr><td class="code">tdiff</td><td class="note">Temperature difference</td></tr>
-                <tr><td class="code">qdiff</td><td class="note">Specific humidity difference</td></tr>
-                <tr><td class="code">nqdiff</td><td class="note">Normalized humidity difference</td></tr>
-                <tr><td class="code">mse</td><td class="note">Moist static energy</td></tr>
-                <tr><td class="code">vmse</td><td class="note">Vertical MSE</td></tr>
+                <tr><td class="code">tdiff</td><td class="note">SST − T2m (K)</td></tr>
+                <tr><td class="code">qdiff</td><td class="note">Saturation Deficit (kg/kg)</td></tr>
+                <tr><td class="code">nqdiff</td><td class="note">Normalized Saturation Deficit</td></tr>
+                <tr><td class="code">mse</td><td class="note">Moist Static Energy (J/kg)</td></tr>
+                <tr><td class="code">vmse</td><td class="note">MSE Advection (W/m²)</td></tr>
                 <tr><td class="code">shear</td><td class="note">Wind shear (level: upper/mid/deep)</td></tr>
-                <tr><td class="code">ref</td><td class="note">Composite reflectivity</td></tr>
+                <tr><td class="code">ref</td><td class="note">Reflectivity (dBz)</td></tr>
               </table>
             </div>
             <div class="ref-section">

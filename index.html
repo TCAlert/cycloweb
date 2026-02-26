@@ -160,28 +160,28 @@
     /* ── View toggle (output | ref) ── */
     .view-toggle {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: .4rem;
+      justify-content: flex-end;
       border-top: 1px solid #aaa;
-      padding: .3rem .5rem;
       flex-shrink: 0;
     }
     .view-btn {
       background: none;
       border: 1px solid transparent;
-      color: #888;
+      border-top: none;
+      color: #666;
       cursor: pointer;
       font-family: inherit;
-      font-size: 11px;
-      padding: .2rem .7rem;
+      font-size: 12px;
+      padding: .3rem .85rem;
+      margin-top: -1px;
     }
+    .view-btn:hover { color: #111; }
     .view-btn.active {
       color: #111;
       border-color: #aaa;
-      background: #f4f4f4;
+      border-top-color: #fff;
+      background: #fff;
     }
-    .view-btn:hover:not(.active) { color: #444; }
 
     /* ── Reference area ── */
     .ref-area {

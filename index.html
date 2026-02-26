@@ -160,28 +160,26 @@
     /* ── View toggle (output | ref) ── */
     .view-toggle {
       display: flex;
+      justify-content: center;
       align-items: center;
-      margin-right: auto;
-      padding: 0 .5rem;
-      gap: .1rem;
-      border-right: 0px solid #aaa;
+      gap: .4rem;
+      border-top: 1px solid #aaa;
+      padding: .3rem .5rem;
+      flex-shrink: 0;
     }
     .view-btn {
       background: none;
       border: 1px solid transparent;
-      border-bottom: none;
       color: #888;
       cursor: pointer;
       font-family: inherit;
       font-size: 11px;
-      padding: .3rem .6rem;
-      margin-bottom: -1px;
+      padding: .2rem .7rem;
     }
     .view-btn.active {
       color: #111;
       border-color: #aaa;
-      border-bottom-color: #fff;
-      background: #fff;
+      background: #f4f4f4;
     }
     .view-btn:hover:not(.active) { color: #444; }
 
@@ -289,7 +287,6 @@
 
       .tabs { justify-content: flex-start; flex-wrap: wrap; }
 
-      .view-toggle { border-right: none; padding-right: 0; }
 
       .ref-cols { grid-template-columns: 1fr; }
     }
@@ -529,21 +526,59 @@
     </div>
 
 
+    <div class="param-panel" id="params-hrrr">
+      <div class="param-title">HRRR</div>
+      <div class="param-desc">High-Resolution Rapid Refresh model from AWS.</div>
+      <div class="field">
+        <label>REGION</label>
+        <input id="hr-region" type="text" placeholder="GOM" />
+        <span class="hint">GOM SE NE MA SC MW GP SW NW US EUS WUS</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="hr-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>INIT HOUR (UTC)</label>
+        <input id="hr-init" type="text" placeholder="18" maxlength="2" />
+        <span class="hint">00–23</span>
+      </div>
+      <div class="field">
+        <label>FCST HOUR</label>
+        <input id="hr-fhour" type="text" placeholder="06" maxlength="2" />
+        <span class="hint">00–48</span>
+      </div>
+      <div class="field">
+        <label>VARIABLE</label>
+        <input id="hr-var" type="text" placeholder="temp" />
+        <span class="hint">temp wind rh vort pwat cape sst slp shear prcp…</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="hr-level" type="text" placeholder="850" class="optional" />
+        <span class="hint">hPa or lower/upper/mid/deep — optional</span>
+      </div>
+      <div class="field">
+        <label>DOMAIN</label>
+        <input id="hr-domain" type="text" placeholder="conus" class="optional" />
+        <span class="hint">conus or alaska — optional</span>
+      </div>
+      <button class="submit" onclick="runHrrr()">run</button>
+      <div class="status" id="hr-status"></div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
   <div class="right-panel">
     <div class="tabs">
-      <div class="view-toggle">
-        <button class="view-btn active" data-view="output">output</button>
-        <button class="view-btn" data-view="ref">ref</button>
-      </div>
       <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
       <button class="tab-btn"        data-tab="mcfetch">McIDAS</button>
       <button class="tab-btn"        data-tab="hafs">HAFS</button>
       <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
+      <button class="tab-btn"        data-tab="hrrr">HRRR</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -800,7 +835,88 @@
         </div>
       </div><!-- /ref-shipsri -->
 
+      <!-- HRRR reference -->
+      <div class="ref-panel" id="ref-hrrr">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>LEVEL-REQUIRED VARIABLES</h3>
+              <table class="ref-table">
+                <tr><td class="code">temp</td><td class="note">Temperature (C)</td></tr>
+                <tr><td class="code">dewp</td><td class="note">Dewpoint 2m (C)</td></tr>
+                <tr><td class="code">wind</td><td class="note">Wind speed (kt)</td></tr>
+                <tr><td class="code">vvel</td><td class="note">Vertical velocity (m/s)</td></tr>
+                <tr><td class="code">rh</td><td class="note">Relative humidity (%)</td></tr>
+                <tr><td class="code">vort</td><td class="note">Absolute vorticity (1/s)</td></tr>
+                <tr><td class="code">hgt</td><td class="note">Geopotential height (dm)</td></tr>
+                <tr><td class="code">pv</td><td class="note">Potential vorticity (PVU)</td></tr>
+                <tr><td class="code">theta</td><td class="note">Potential temperature (K)</td></tr>
+                <tr><td class="code">thetae</td><td class="note">Equiv. potential temperature (K)</td></tr>
+                <tr><td class="code">mss</td><td class="note">Moist bulk stability (K/m)</td></tr>
+                <tr><td class="code">ss</td><td class="note">Bulk static stability (K/m)</td></tr>
+                <tr><td class="code">s</td><td class="note">Lapse rate stability (C/km)</td></tr>
+                <tr><td class="code">ratio</td><td class="note">10m/700mb wind ratio</td></tr>
+                <tr><td class="code">mflx / mflx_s / mflx_ss</td><td class="note">Vertical mass flux (kg/m²s)</td></tr>
+                <tr><td class="code">tadv / tadv_s / tadv_ss</td><td class="note">Temperature advection (K/hr)</td></tr>
+                <tr><td class="code">thadv / thadv_s / thadv_ss</td><td class="note">Theta advection (K/hr)</td></tr>
+                <tr><td class="code">thedv / thedv_s / thedv_ss</td><td class="note">Theta-e advection (K/hr)</td></tr>
+                <tr><td class="code">mfc / mfc_s / mfc_ss</td><td class="note">Moisture flux convergence</td></tr>
+                <tr><td class="code">div / div_s / div_ss</td><td class="note">Divergence (1/s)</td></tr>
+                <tr><td class="code">okw / okw_s / okw_ss</td><td class="note">Okubo-Weiss (1/s²)</td></tr>
+                <tr><td class="code">fgn / fgn_s / fgn_ss</td><td class="note">Frontogenesis (K/100km/3hr)</td></tr>
+                <tr><td class="code">tfp / tfp_s / tfp_ss</td><td class="note">Thermal frontal parameter</td></tr>
+                <tr><td class="code">twp / twp_s / twp_ss</td><td class="note">Thermal wind CPS approx (m/s)</td></tr>
+                <tr><td class="code">thg / thg_s / thg_ss</td><td class="note">Thickness gradient</td></tr>
+                <tr><td class="code">qdiff / nqdiff</td><td class="note">Saturation deficit (kg/kg)</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>SURFACE / INTEGRATED VARIABLES</h3>
+              <table class="ref-table">
+                <tr><td class="code">pwat</td><td class="note">Precipitable water (mm)</td></tr>
+                <tr><td class="code">cape</td><td class="note">CAPE (J/kg)</td></tr>
+                <tr><td class="code">cinh</td><td class="note">CIN (J/kg)</td></tr>
+                <tr><td class="code">sst</td><td class="note">Sea surface temperature (C)</td></tr>
+                <tr><td class="code">gust</td><td class="note">Wind gusts (kt)</td></tr>
+                <tr><td class="code">slp</td><td class="note">Sea level pressure (hPa)</td></tr>
+                <tr><td class="code">srh</td><td class="note">0–3km storm-relative helicity</td></tr>
+                <tr><td class="code">eff</td><td class="note">Carnot efficiency (%)</td></tr>
+                <tr><td class="code">diseq</td><td class="note">Thermodynamic disequilibrium (J/kg)</td></tr>
+                <tr><td class="code">mpi</td><td class="note">Max potential intensity (kt)</td></tr>
+                <tr><td class="code">vpr</td><td class="note">Ventilation proxy (dimensionless)</td></tr>
+                <tr><td class="code">lhf</td><td class="note">Latent heat flux (W/m²)</td></tr>
+                <tr><td class="code">shf</td><td class="note">Sensible heat flux (W/m²)</td></tr>
+                <tr><td class="code">tdiff</td><td class="note">SST − T2m (K)</td></tr>
+                <tr><td class="code">ci</td><td class="note">Coupling index (K)</td></tr>
+                <tr><td class="code">shear</td><td class="note">Wind shear — level: upper/mid/deep</td></tr>
+                <tr><td class="code">prcp</td><td class="note">Precipitation type (categorical)</td></tr>
+                <tr><td class="code">snow</td><td class="note">Snowfall depth (in)</td></tr>
+                <tr><td class="code">ref</td><td class="note">1km composite reflectivity (dBz)</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>NOTES</h3>
+              <table class="ref-table">
+                <tr><td class="code">region</td><td class="note">GOM SE NE MA SC MW GP SW NW US EUS WUS</td></tr>
+                <tr><td class="code">init</td><td class="note">2-digit UTC hour, e.g. 18</td></tr>
+                <tr><td class="code">fhour</td><td class="note">Forecast hour, e.g. 06</td></tr>
+                <tr><td class="code">level</td><td class="note">hPa for upper-air; lower/upper/mid/deep for layer vars</td></tr>
+                <tr><td class="code">_s suffix</td><td class="note">Gaussian smooth once (σ=5)</td></tr>
+                <tr><td class="code">_ss suffix</td><td class="note">Gaussian smooth twice (σ=15)</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-hrrr -->
+
     </div><!-- /view-ref -->
+
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="output">output</button>
+      <button class="view-btn" data-view="ref">ref</button>
+    </div>
 
   </div><!-- /right-panel -->
 
@@ -819,7 +935,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -997,6 +1113,24 @@
       }
       setDone('ad', btn);
     } catch (e) { setError('ad', btn, e.message); }
+  }
+
+  async function runHrrr() {
+    const btn = event.target;
+    setLoading('hr', btn);
+    try {
+      const data = await callAPI('/hrrr', {
+        region: val('hr-region'),
+        date:   val('hr-date'),
+        init:   val('hr-init'),
+        fhour:  val('hr-fhour'),
+        var:    val('hr-var'),
+        level:  val('hr-level'),
+        domain: val('hr-domain'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('hr', btn);
+    } catch (e) { setError('hr', btn, e.message); }
   }
 
   async function runShipsri() {

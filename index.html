@@ -528,22 +528,6 @@
       <div class="status" id="sh-status"></div>
     </div>
 
-    <div class="param-panel" id="params-hurdat">
-      <div class="param-title">HURDAT Density</div>
-      <div class="param-desc">30-year sliding climatology anomaly from HURDAT2.</div>
-      <div class="field">
-        <label>YEARS</label>
-        <input id="hu-years" type="text" placeholder="2020,2021" />
-        <span class="hint">comma-separated, e.g. 2005 or 2010,2011</span>
-      </div>
-      <div class="field">
-        <label>DATA TYPE</label>
-        <input id="hu-datatype" type="text" placeholder="track" class="optional" />
-        <span class="hint">track  RI  24hrchange  ace  wind</span>
-      </div>
-      <button class="submit" onclick="runHurdat()">run</button>
-      <div class="status" id="hu-status"></div>
-    </div>
 
   </div><!-- /left-panel -->
 
@@ -560,7 +544,6 @@
       <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
-      <button class="tab-btn"        data-tab="hurdat">Density</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -817,36 +800,6 @@
         </div>
       </div><!-- /ref-shipsri -->
 
-      <!-- HURDAT Density reference -->
-      <div class="ref-panel" id="ref-hurdat">
-        <div class="ref-cols">
-          <div>
-            <div class="ref-section">
-              <h3>DATA TYPES</h3>
-              <table class="ref-table">
-                <tr><td class="code">track</td><td class="note">Storm track density anomaly (default)</td></tr>
-                <tr><td class="code">RI</td><td class="note">Rapid intensification event density</td></tr>
-                <tr><td class="code">24hrchange</td><td class="note">24-hour intensity change density</td></tr>
-                <tr><td class="code">ace</td><td class="note">Accumulated Cyclone Energy density</td></tr>
-                <tr><td class="code">wind</td><td class="note">Wind speed density</td></tr>
-              </table>
-            </div>
-          </div>
-          <div>
-            <div class="ref-section">
-              <h3>NOTES</h3>
-              <table class="ref-table">
-                <tr><td class="code">years</td><td class="note">Comma-separated, e.g. 2005 or 2010,2011</td></tr>
-                <tr><td class="code">Climo</td><td class="note">30-year sliding climatology (year−30 to year−1)</td></tr>
-                <tr><td class="code">Extent</td><td class="note">ATL/EPAC; pre-1978 limited to ATL only</td></tr>
-                <tr><td class="code">Smoothing</td><td class="note">Gaussian filter σ=3 applied to anomaly grid</td></tr>
-                <tr><td class="code">Source</td><td class="note">HURDAT2 (NHC) through 2025</td></tr>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div><!-- /ref-hurdat -->
-
     </div><!-- /view-ref -->
 
   </div><!-- /right-panel -->
@@ -866,7 +819,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hurdat: 'ref-hurdat' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1062,18 +1015,6 @@
     } catch (e) { setError('sh', btn, e.message); }
   }
 
-  async function runHurdat() {
-    const btn = event.target;
-    setLoading('hu', btn);
-    try {
-      const data = await callAPI('/hurdatdensity', {
-        years:    val('hu-years'),
-        datatype: val('hu-datatype') || 'track',
-      });
-      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
-      setDone('hu', btn);
-    } catch (e) { setError('hu', btn, e.message); }
-  }
 </script>
 </body>
 </html>

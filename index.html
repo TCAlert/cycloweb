@@ -593,12 +593,19 @@
       <div class="param-title">ERA5 Reanalysis</div>
       <div class="param-desc">0.25° ERA5 pressure-level and surface diagnostic plots via CDS API.</div>
       <div class="field">
+        <label>STORM NAME</label>
+        <input id="e5-storm" type="text" placeholder="Earl" class="optional" />
+        <span class="hint">HURDAT2 name — overrides lat/lon if provided</span>
+      </div>
+      <div class="field">
         <label>LAT</label>
-        <input id="e5-lat" type="text" placeholder="17" />
+        <input id="e5-lat" type="text" placeholder="17" class="optional" />
+        <span class="hint">required if no storm name</span>
       </div>
       <div class="field">
         <label>LON</label>
-        <input id="e5-lon" type="text" placeholder="-59" />
+        <input id="e5-lon" type="text" placeholder="-59" class="optional" />
+        <span class="hint">required if no storm name</span>
       </div>
       <div class="field">
         <label>MONTH</label>
@@ -630,6 +637,23 @@
       <div class="status" id="e5-status"></div>
     </div>
 
+    <div class="param-panel" id="params-metar">
+      <div class="param-title">METAR Time Series</div>
+      <div class="param-desc">96-hour METAR time series for temperature, pressure, or wind from any ICAO station.</div>
+      <div class="field">
+        <label>STATION</label>
+        <input id="mt-station" type="text" placeholder="KMIA" maxlength="6" />
+        <span class="hint">ICAO station code</span>
+      </div>
+      <div class="field">
+        <label>PLOTTYPE</label>
+        <input id="mt-plottype" type="text" placeholder="temp" />
+        <span class="hint">temp &nbsp; pres &nbsp; wind</span>
+      </div>
+      <button class="submit" onclick="runMetar()">run</button>
+      <div class="status" id="mt-status"></div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
@@ -643,6 +667,7 @@
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
       <button class="tab-btn"        data-tab="hrrr">HRRR</button>
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
+      <button class="tab-btn"        data-tab="metar">METAR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
     </div>
     <div class="image-area" id="view-output">
@@ -1065,6 +1090,35 @@
         </div>
       </div><!-- /ref-era5 -->
 
+      <!-- METAR reference -->
+      <div class="ref-panel" id="ref-metar">
+        <div class="ref-title">METAR Time Series</div>
+        <div class="ref-body">
+          <div class="ref-section">
+            <h3>PARAMETERS</h3>
+            <table class="ref-table">
+              <tr><td class="code">station</td><td class="note">ICAO station code, e.g. KMIA, KBWI, EGLL</td></tr>
+              <tr><td class="code">plottype</td><td class="note">temp, pres, or wind</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>PLOT TYPES</h3>
+            <table class="ref-table">
+              <tr><td class="code">temp</td><td class="note">Temperature &amp; dewpoint time series (°F)</td></tr>
+              <tr><td class="code">pres</td><td class="note">Sea-level pressure time series (mb)</td></tr>
+              <tr><td class="code">wind</td><td class="note">Wind speed &amp; gust time series (kt)</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>NOTES</h3>
+            <table class="ref-table">
+              <tr><td class="code">source</td><td class="note">aviationweather.gov METAR dataserver, 96 hours back</td></tr>
+              <tr><td class="code">data_url</td><td class="note">Raw CSV link returned in response for download</td></tr>
+            </table>
+          </div>
+        </div>
+      </div><!-- /ref-metar -->
+
     </div><!-- /view-ref -->
 
     <div class="view-toggle">
@@ -1089,7 +1143,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1306,19 +1360,33 @@
     setLoading('e5', btn);
     try {
       const data = await callAPI('/era5', {
-        lat:      val('e5-lat'),
-        lon:      val('e5-lon'),
-        month:    val('e5-month'),
-        day:      val('e5-day'),
-        year:     val('e5-year'),
-        hour:     val('e5-hour'),
-        plottype: val('e5-plottype'),
-        level:    val('e5-level'),
+        stormname: val('e5-storm'),
+        lat:       val('e5-lat'),
+        lon:       val('e5-lon'),
+        month:     val('e5-month'),
+        day:       val('e5-day'),
+        year:      val('e5-year'),
+        hour:      val('e5-hour'),
+        plottype:  val('e5-plottype'),
+        level:     val('e5-level'),
       });
       const extra = data.image_url2 ? API_BASE + data.image_url2 + '?t=' + Date.now() : null;
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), extra, 'shear distribution');
       setDone('e5', btn);
     } catch (e) { setError('e5', btn, e.message); }
+  }
+
+  async function runMetar() {
+    const btn = event.target;
+    setLoading('mt', btn);
+    try {
+      const data = await callAPI('/metar', {
+        station:  val('mt-station'),
+        plottype: val('mt-plottype'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('mt', btn);
+    } catch (e) { setError('mt', btn, e.message); }
   }
 
   async function runShipsri() {

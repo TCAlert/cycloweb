@@ -1,6 +1,7 @@
 import os
 import xarray as xr
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import cartopy, cartopy.crs as ccrs
 import satcmaps as cmaps
 import cmaps as cmp
@@ -14,6 +15,7 @@ import urllib.request
 import ibtracsParser as IP
 KEY = 'd605d6cf-11b8-11ec-818a-a0369f818cc4'
 OUTPUTS = os.environ.get('CYCLOBOT_OUTPUTS', r'C:\Users\deela\Downloads')
+rcParams['font.family'] = 'Courier New'
 
 def reproject(dataset, lons, lats, res = 0.0179985):                           
     # Extents and interpolation for IR

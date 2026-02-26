@@ -409,6 +409,41 @@
       <div class="status" id="hafs-status"></div>
     </div>
 
+    <div class="param-panel" id="params-tcprimed">
+      <div class="param-title">TC-PRIMED</div>
+      <div class="param-desc">Passive microwave + IR two-panel from the TC-PRIMED archive.</div>
+      <div class="field">
+        <label>STORM</label>
+        <input id="tc-storm" type="text" placeholder="AL11" />
+        <span class="hint">xxXX format, e.g. AL11 EP20 IO06</span>
+      </div>
+      <div class="field">
+        <label>SATELLITE</label>
+        <input id="tc-satellite" type="text" placeholder="AMSR" />
+        <span class="hint">ATMS AMSR GMI SSMI SSMIS MHS TMI</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="tc-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>TIME (UTC)</label>
+        <input id="tc-time" type="text" placeholder="1800" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>CHANNEL</label>
+        <input id="tc-datatype" type="text" placeholder="mid" class="optional" />
+        <span class="hint">mid (85-91 GHz) or low (36-37 GHz)</span>
+      </div>
+      <div class="field">
+        <label>COLOR RGB</label>
+        <input id="tc-color" type="text" placeholder="false" class="optional" />
+        <span class="hint">true or false</span>
+      </div>
+      <button class="submit" onclick="runTcprimed()">run</button>
+      <div class="status" id="tc-status"></div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
@@ -421,6 +456,7 @@
       <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
       <button class="tab-btn"        data-tab="mcfetch">McIDAS</button>
       <button class="tab-btn"        data-tab="hafs">HAFS</button>
+      <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -532,6 +568,35 @@
         </div>
       </div><!-- /ref-hafs -->
 
+      <!-- TC-PRIMED reference -->
+      <div class="ref-panel" id="ref-tcprimed">
+        <div class="ref-cols">
+          <div class="ref-section">
+            <h3>SENSORS</h3>
+            <table class="ref-table">
+              <tr><td class="code">ATMS</td><td class="note">Advanced Technology Microwave Sounder (mid + low)</td></tr>
+              <tr><td class="code">AMSR</td><td class="note">Advanced Microwave Scanning Radiometer (mid + low)</td></tr>
+              <tr><td class="code">GMI</td><td class="note">GPM Microwave Imager (mid + low)</td></tr>
+              <tr><td class="code">SSMI</td><td class="note">Special Sensor Microwave/Imager (mid + low)</td></tr>
+              <tr><td class="code">SSMIS</td><td class="note">SSMI/Sounder (mid + low)</td></tr>
+              <tr><td class="code">MHS</td><td class="note">Microwave Humidity Sounder (mid only)</td></tr>
+              <tr><td class="code">TMI</td><td class="note">TRMM Microwave Imager (mid + low)</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>PARAMETERS</h3>
+            <table class="ref-table">
+              <tr><td class="code">storm</td><td class="note">xxXX — basin + number, e.g. AL11, EP20, IO06, WP03</td></tr>
+              <tr><td class="code">date</td><td class="note">MM/DD/YYYY of the overpass</td></tr>
+              <tr><td class="code">time</td><td class="note">Nearest overpass time is selected automatically</td></tr>
+              <tr><td class="code">mid</td><td class="note">85–91 GHz channel (deep convection signal)</td></tr>
+              <tr><td class="code">low</td><td class="note">36–37 GHz channel (liquid water signal); MHS not supported</td></tr>
+              <tr><td class="code">color</td><td class="note">true = RGB composite from H/V polarization ratio</td></tr>
+            </table>
+          </div>
+        </div>
+      </div><!-- /ref-tcprimed -->
+
     </div><!-- /view-ref -->
 
   </div><!-- /right-panel -->
@@ -551,7 +616,8 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refId = activeTab === 'hafs' ? 'ref-hafs' : 'ref-satellite';
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed' };
+      const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
     });
@@ -688,6 +754,23 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('hafs', btn);
     } catch (e) { setError('hafs', btn, e.message); }
+  }
+
+  async function runTcprimed() {
+    const btn = event.target;
+    setLoading('tc', btn);
+    try {
+      const data = await callAPI('/tcprimed', {
+        storm:     val('tc-storm'),
+        satellite: val('tc-satellite'),
+        date:      val('tc-date'),
+        time:      val('tc-time'),
+        datatype:  val('tc-datatype') || 'mid',
+        color:     val('tc-color')    || 'false',
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('tc', btn);
+    } catch (e) { setError('tc', btn, e.message); }
   }
 </script>
 </body>

@@ -13,6 +13,8 @@ import getRadar as gr
 import cartopy.mpl.ticker as cticker
 from helper import REGIONS, USREGIONS, greatCircle
 import ibtracsParser as IP
+from matplotlib import rcParams
+rcParams['font.family'] = ['Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'monospace']
 
 OUTPUTS = os.environ.get('CYCLOBOT_OUTPUTS', r'C:\Users\deela\Downloads')
 
@@ -170,6 +172,9 @@ def run(satellite, date, TIME, lat, lon, band, cmp = None, zoom = 2, ibtracsCSV 
         filename = ir.getHimawariData(satellite, int(date[2]), int(date[0]), int(date[1]), TIME, ch)
         dataset = xr.open_mfdataset(os.path.join(OUTPUTS, f'himawari{filename}', '*.nc'), autoclose=True)
         data = dataset['Sectorized_CMI']
+        # combine='by_coords' sorts y ascending (south-first); reverse to north-first
+        if data.y[0] < data.y[-1]:
+            data = data.isel(y=slice(None, None, -1))
         center = dataset.product_center_longitude
         time = f"{'/'.join(date)} at {TIME} UTC"
 

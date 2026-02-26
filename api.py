@@ -18,6 +18,7 @@ os.environ['CYCLOBOT_OUTPUTS'] = OUTPUTS  # propagate to the plotting modules
 import plotCommand as plot
 import mcfetching as mcfetch
 import hafs as hafs_module
+import TCPRIMEDRetrieve as tcprimed_module
 
 # IBTrACS not loaded on the web — storm-name zoom is not supported here
 ibtracsCSV = None
@@ -129,6 +130,31 @@ async def hafs_endpoint(
         )
         return {
             'image_url': '/outputs/hafsRealTime.png',
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@app.get('/tcprimed', summary='TC-PRIMED passive microwave + IR plot')
+async def tcprimed_endpoint(
+    storm:    str = Query(..., description='Storm ID in xxXX format, e.g. AL11, EP20, IO06'),
+    satellite: str = Query(..., description='Sensor: ATMS, AMSR, GMI, SSMI, SSMIS, MHS, TMI'),
+    date:     str = Query(..., description='Date in MM/DD/YYYY format'),
+    time:     str = Query(..., description='Time as 4-digit UTC, e.g. 1800'),
+    datatype: Optional[str] = Query(None, description='Channel level: mid (85-91 GHz) or low (36-37 GHz), default mid'),
+    color:    Optional[str] = Query(None, description='RGB composite: true or false, default false'),
+):
+    try:
+        kwargs = {}
+        if datatype is not None:
+            kwargs['datatype'] = datatype
+        color_bool = str(color).lower() == 'true' if color is not None else False
+        await run_blocking(
+            tcprimed_module.plot2, storm.upper(), satellite.upper(), date, time,
+            kwargs.get('datatype', 'mid'), color_bool
+        )
+        return {
+            'image_url': '/outputs/tcprimed_plot2.png',
         }
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())

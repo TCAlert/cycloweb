@@ -1,5 +1,7 @@
 import os
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+rcParams['font.family'] = ['Courier New', 'Liberation Mono', 'DejaVu Sans Mono', 'monospace']
 import cartopy, cartopy.crs as ccrs
 import numpy as np
 import xarray as xr
@@ -155,8 +157,8 @@ def plot(storm, satellite, date, time, datatype = 'mid', color = False, ibtracs 
     nc_path = os.path.join(OUTPUTS, filename + ".nc")
     dataset = xr.open_dataset(nc_path, group = f'passive_microwave/{num}', autoclose = True)
     stormData = xr.open_dataset(nc_path, group = f'overpass_storm_metadata/', autoclose = True)
-    lat = stormData['storm_latitude'].values
-    lon = stormData['storm_longitude'].values
+    lat = float(np.nanmean(stormData['storm_latitude'].values))
+    lon = float(np.nanmean(stormData['storm_longitude'].values))
 
     data = dataset[band]
     lats = dataset['latitude']
@@ -297,8 +299,8 @@ def plot2(storm, satellite, date, time, datatype = 'mid', color = False, ibtracs
     dataset = xr.open_dataset(nc_path, group = f'passive_microwave/{num}', autoclose = True)
     stormData = xr.open_dataset(nc_path, group = f'overpass_storm_metadata/', autoclose = True)
     irData = xr.open_dataset(nc_path, group = 'infrared')
-    lat = stormData['storm_latitude'].values
-    lon = stormData['storm_longitude'].values
+    lat = float(np.nanmean(stormData['storm_latitude'].values))
+    lon = float(np.nanmean(stormData['storm_longitude'].values))
 
     ir = irData['IRWIN'] - 273.15
 

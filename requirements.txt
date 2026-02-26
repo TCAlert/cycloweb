@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 numpy
 scipy
+sklearn
 matplotlib
 xarray
 cartopy

@@ -244,6 +244,35 @@
       padding: .05rem .3rem;
     }
 
+    /* ── A-Deck consensus table ── */
+    .adeck-table-wrap {
+      display: none;
+      margin-top: .6rem;
+      width: 100%;
+      overflow-x: auto;
+    }
+    .adeck-table-wrap.visible { display: block; }
+    .adeck-table {
+      width: auto;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin: 0 auto;
+    }
+    .adeck-table th {
+      border-bottom: 1px solid #aaa;
+      padding: .2rem .8rem;
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+      letter-spacing: .05em;
+      font-size: 10px;
+    }
+    .adeck-table td {
+      padding: .15rem .8rem;
+      text-align: center;
+    }
+    .adeck-table tr:nth-child(even) td { background: #f8f8f8; }
+
     /* ── Mobile ── */
     @media (max-width: 640px) {
       .layout { flex-direction: column; }
@@ -444,6 +473,78 @@
       <div class="status" id="tc-status"></div>
     </div>
 
+    <div class="param-panel" id="params-adeck">
+      <div class="param-title">A-Deck Consensus</div>
+      <div class="param-desc">Averaged A-Deck guidance with SST overlay for current-year storms.</div>
+      <div class="field">
+        <label>STORM</label>
+        <input id="ad-storm" type="text" placeholder="al10" />
+        <span class="hint">ATCF ID, e.g. al10 ep03 wp05</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="ad-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>INIT HOUR (UTC)</label>
+        <input id="ad-time" type="text" placeholder="06" maxlength="2" />
+        <span class="hint">00 06 12 18</span>
+      </div>
+      <div class="field">
+        <label>MODELS</label>
+        <input id="ad-models" type="text" placeholder="hfai,hfbi,hwrf" />
+        <span class="hint">comma-separated ATCF model IDs</span>
+      </div>
+      <button class="submit" onclick="runAdeck()">run</button>
+      <div class="status" id="ad-status"></div>
+    </div>
+
+    <div class="param-panel" id="params-shipsri">
+      <div class="param-title">SHIPS RI</div>
+      <div class="param-desc">Random-forest 24h intensity prediction from SHIPS predictors.</div>
+      <div class="field">
+        <label>STORM</label>
+        <input id="sh-storm" type="text" placeholder="al13" />
+        <span class="hint">ATCF ID, e.g. al13 ep05</span>
+      </div>
+      <div class="field">
+        <label>YEAR</label>
+        <input id="sh-year" type="text" placeholder="2025" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="sh-month" type="text" placeholder="10" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>DAY</label>
+        <input id="sh-day" type="text" placeholder="24" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>HOUR (UTC)</label>
+        <input id="sh-hour" type="text" placeholder="12" maxlength="2" class="optional" />
+        <span class="hint">00 06 12 18 — optional, tries all</span>
+      </div>
+      <button class="submit" onclick="runShipsri()">run</button>
+      <div class="status" id="sh-status"></div>
+    </div>
+
+    <div class="param-panel" id="params-hurdat">
+      <div class="param-title">HURDAT Density</div>
+      <div class="param-desc">30-year sliding climatology anomaly from HURDAT2.</div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="hu-years" type="text" placeholder="2020,2021" />
+        <span class="hint">comma-separated, e.g. 2005 or 2010,2011</span>
+      </div>
+      <div class="field">
+        <label>DATA TYPE</label>
+        <input id="hu-datatype" type="text" placeholder="track" class="optional" />
+        <span class="hint">track  RI  24hrchange  ace  wind</span>
+      </div>
+      <button class="submit" onclick="runHurdat()">run</button>
+      <div class="status" id="hu-status"></div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
@@ -457,10 +558,21 @@
       <button class="tab-btn"        data-tab="mcfetch">McIDAS</button>
       <button class="tab-btn"        data-tab="hafs">HAFS</button>
       <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
+      <button class="tab-btn"        data-tab="adeck">A-Deck</button>
+      <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
+      <button class="tab-btn"        data-tab="hurdat">Density</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
       <img id="result-img" src="" alt="" />
+      <div class="adeck-table-wrap" id="adeck-table-wrap">
+        <table class="adeck-table">
+          <thead>
+            <tr><th>HOUR</th><th>LAT</th><th>LON</th><th>WIND (kt)</th></tr>
+          </thead>
+          <tbody id="adeck-table-body"></tbody>
+        </table>
+      </div>
       <div class="image-links" id="result-links">
         <a id="link-img"  href="#" target="_blank">open image</a>
         <a id="link-extra" href="#" target="_blank" style="display:none"></a>
@@ -643,6 +755,98 @@
         </div>
       </div><!-- /ref-tcprimed -->
 
+      <!-- A-Deck reference -->
+      <div class="ref-panel" id="ref-adeck">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PARAMETERS</h3>
+              <table class="ref-table">
+                <tr><td class="code">storm</td><td class="note">ATCF ID — e.g. al10, ep03, wp05</td></tr>
+                <tr><td class="code">date</td><td class="note">MM/DD/YYYY of initialization</td></tr>
+                <tr><td class="code">time</td><td class="note">Synoptic hour — 00, 06, 12, 18</td></tr>
+                <tr><td class="code">models</td><td class="note">Comma-separated ATCF model IDs</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>COMMON MODELS</h3>
+              <table class="ref-table">
+                <tr><td class="code">OFCI</td><td class="note">Official NHC forecast</td></tr>
+                <tr><td class="code">HFAI / HFBI</td><td class="note">HAFS-A / HAFS-B (interpolated)</td></tr>
+                <tr><td class="code">HWFI</td><td class="note">HWRF (interpolated)</td></tr>
+                <tr><td class="code">EMXI</td><td class="note">ECMWF (interpolated)</td></tr>
+                <tr><td class="code">AVNI</td><td class="note">GFS (interpolated)</td></tr>
+                <tr><td class="code">NAMI</td><td class="note">NAM (interpolated)</td></tr>
+                <tr><td class="code">CTCI</td><td class="note">CTCX consensus (interpolated)</td></tr>
+                <tr><td class="code">ICON</td><td class="note">ICON model</td></tr>
+                <tr><td class="code">UKX</td><td class="note">UK Met Office</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-adeck -->
+
+      <!-- SHIPS RI reference -->
+      <div class="ref-panel" id="ref-shipsri">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PARAMETERS</h3>
+              <table class="ref-table">
+                <tr><td class="code">storm</td><td class="note">ATCF ID — e.g. al13, ep05</td></tr>
+                <tr><td class="code">year</td><td class="note">4-digit year</td></tr>
+                <tr><td class="code">month</td><td class="note">Month number (1–12)</td></tr>
+                <tr><td class="code">day</td><td class="note">Day number (1–31)</td></tr>
+                <tr><td class="code">hour</td><td class="note">00, 06, 12, 18 — optional, tries all if omitted</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>OUTPUT</h3>
+              <table class="ref-table">
+                <tr><td class="code">Distribution</td><td class="note">Random forest tree predictions histogram</td></tr>
+                <tr><td class="code">Prediction</td><td class="note">Ensemble-mean 24h intensity forecast (kt)</td></tr>
+                <tr><td class="code">RI prob.</td><td class="note">% of trees predicting ≥30 kt intensification</td></tr>
+                <tr><td class="code">Shear arrow</td><td class="note">200–850mb shear magnitude + direction</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-shipsri -->
+
+      <!-- HURDAT Density reference -->
+      <div class="ref-panel" id="ref-hurdat">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>DATA TYPES</h3>
+              <table class="ref-table">
+                <tr><td class="code">track</td><td class="note">Storm track density anomaly (default)</td></tr>
+                <tr><td class="code">RI</td><td class="note">Rapid intensification event density</td></tr>
+                <tr><td class="code">24hrchange</td><td class="note">24-hour intensity change density</td></tr>
+                <tr><td class="code">ace</td><td class="note">Accumulated Cyclone Energy density</td></tr>
+                <tr><td class="code">wind</td><td class="note">Wind speed density</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>NOTES</h3>
+              <table class="ref-table">
+                <tr><td class="code">years</td><td class="note">Comma-separated, e.g. 2005 or 2010,2011</td></tr>
+                <tr><td class="code">Climo</td><td class="note">30-year sliding climatology (year−30 to year−1)</td></tr>
+                <tr><td class="code">Extent</td><td class="note">ATL/EPAC; pre-1978 limited to ATL only</td></tr>
+                <tr><td class="code">Smoothing</td><td class="note">Gaussian filter σ=3 applied to anomaly grid</td></tr>
+                <tr><td class="code">Source</td><td class="note">HURDAT2 (NHC) through 2025</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-hurdat -->
+
     </div><!-- /view-ref -->
 
   </div><!-- /right-panel -->
@@ -662,7 +866,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hurdat: 'ref-hurdat' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -703,6 +907,7 @@
     viewOutput.style.display = '';
     viewRef.classList.remove('visible');
     document.getElementById('img-placeholder').style.display = 'none';
+    document.getElementById('adeck-table-wrap').classList.remove('visible');
     const img = document.getElementById('result-img');
     img.src = imgUrl;
     img.classList.add('visible');
@@ -817,6 +1022,57 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('tc', btn);
     } catch (e) { setError('tc', btn, e.message); }
+  }
+
+  async function runAdeck() {
+    const btn = event.target;
+    setLoading('ad', btn);
+    try {
+      const data = await callAPI('/adeckavg', {
+        storm:  val('ad-storm'),
+        date:   val('ad-date'),
+        time:   val('ad-time'),
+        models: val('ad-models'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      if (data.table && data.table.length) {
+        const tbody = document.getElementById('adeck-table-body');
+        tbody.innerHTML = data.table.map(r =>
+          `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`
+        ).join('');
+        document.getElementById('adeck-table-wrap').classList.add('visible');
+      }
+      setDone('ad', btn);
+    } catch (e) { setError('ad', btn, e.message); }
+  }
+
+  async function runShipsri() {
+    const btn = event.target;
+    setLoading('sh', btn);
+    try {
+      const data = await callAPI('/shipsri', {
+        storm: val('sh-storm'),
+        year:  val('sh-year'),
+        month: val('sh-month'),
+        day:   val('sh-day'),
+        hour:  val('sh-hour'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('sh', btn);
+    } catch (e) { setError('sh', btn, e.message); }
+  }
+
+  async function runHurdat() {
+    const btn = event.target;
+    setLoading('hu', btn);
+    try {
+      const data = await callAPI('/hurdatdensity', {
+        years:    val('hu-years'),
+        datatype: val('hu-datatype') || 'track',
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('hu', btn);
+    } catch (e) { setError('hu', btn, e.message); }
   }
 </script>
 </body>

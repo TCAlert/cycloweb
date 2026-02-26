@@ -15,10 +15,17 @@ OUTPUTS = os.environ.get('CYCLOBOT_OUTPUTS', os.path.join(tempfile.gettempdir(),
 os.makedirs(OUTPUTS, exist_ok=True)
 os.environ['CYCLOBOT_OUTPUTS'] = OUTPUTS  # propagate to the plotting modules
 
+# Data directory for static large files (pickle, NC)
+DATA_DIR = os.environ.get('CYCLOBOT_DATA', os.path.dirname(os.path.abspath(__file__)))
+os.environ['CYCLOBOT_DATA'] = DATA_DIR
+
 import plotCommand as plot
 import mcfetching as mcfetch
 import hafs as hafs_module
 import TCPRIMEDRetrieve as tcprimed_module
+import adeckAVG as adeck_module
+import shipsRI as ships_module
+import hurdatTrackDensityMaps as hurdat_module
 
 # IBTrACS not loaded on the web — storm-name zoom is not supported here
 ibtracsCSV = None
@@ -156,6 +163,63 @@ async def tcprimed_endpoint(
         )
         return {
             'image_url': '/outputs/tcprimed_plot2.png',
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@app.get('/adeckavg', summary='A-Deck averaged consensus track')
+async def adeckavg_endpoint(
+    storm:  str = Query(..., description='ATCF storm ID, e.g. al10'),
+    date:   str = Query(..., description='Init date in MM/DD/YYYY format'),
+    time:   str = Query(..., description='Init hour as 2-digit UTC, e.g. 06'),
+    models: str = Query(..., description='Comma-separated model list, e.g. hfai,hfbi,hwrf'),
+):
+    try:
+        model_list = [m.strip() for m in models.split(',') if m.strip()]
+        table = await run_blocking(
+            adeck_module.plot, storm.lower(), date, time, model_list
+        )
+        rows = [[round(float(r[0])), round(float(r[1]), 1), round(float(r[2]), 1), round(float(r[3]), 1)]
+                for r in table if not any(str(v) == 'nan' for v in r)]
+        return {
+            'image_url': '/outputs/consensusGen.png',
+            'table': rows,
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@app.get('/shipsri', summary='SHIPS-based random forest RI prediction')
+async def shipsri_endpoint(
+    storm: str = Query(..., description='Storm ATCF ID, e.g. al13'),
+    year:  str = Query(..., description='4-digit year, e.g. 2025'),
+    month: str = Query(..., description='Month number, e.g. 10'),
+    day:   str = Query(..., description='Day number, e.g. 24'),
+    hour:  Optional[str] = Query(None, description='UTC hour: 00 06 12 18 (optional, tries all if omitted)'),
+):
+    try:
+        await run_blocking(
+            ships_module.getShips, storm.lower(), year, month, day, hour
+        )
+        return {
+            'image_url': '/outputs/SHART.png',
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+
+@app.get('/hurdatdensity', summary='HURDAT2 track/ACE/RI density anomaly')
+async def hurdatdensity_endpoint(
+    years:    str = Query(..., description='Comma-separated year list, e.g. 2020,2021'),
+    datatype: Optional[str] = Query(None, description='track / RI / 24hrchange / ace / wind (default track)'),
+):
+    try:
+        year_list = [int(y.strip()) for y in years.split(',') if y.strip()]
+        dt = (datatype or 'track').lower()
+        await run_blocking(hurdat_module.makePlot, year_list, dt)
+        return {
+            'image_url': '/outputs/hurdatDensityPlot.png',
         }
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())

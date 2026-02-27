@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CycloWeb</title>
+  <link rel="icon" type="image/png" href="IMG_3545.PNG" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
   <style>
@@ -1461,7 +1462,7 @@
     try {
       const data = await callAPI('/ersst', {
         month: val('er-month'),
-        years: val('er-years'),
+        years: val('er-years').replace(/,*$/, ','),
         type:  val('er-type'),
         sd:    val('er-sd'),
       });

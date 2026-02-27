@@ -303,6 +303,22 @@
       text-decoration: underline;
     }
 
+    .info-btn {
+      margin-top: auto;
+      background: none;
+      border: none;
+      border-top: 1px solid #ddd;
+      color: #888;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      padding: .4rem 0;
+      text-align: left;
+      width: 100%;
+    }
+    .info-btn:hover { color: #111; }
+    .info-btn.active { color: #111; font-weight: bold; }
+
     /* ── Mobile ── */
     @media (max-width: 640px) {
       .layout { flex-direction: column; }
@@ -686,10 +702,9 @@
       <div class="status" id="mt-status"></div>
     </div>
 
-    <div class="param-panel" id="params-about">
-      <div class="param-title">Info</div>
-      <div class="param-desc">About this tool and its author.</div>
-    </div>
+    <div class="param-panel" id="params-about"></div>
+
+    <button class="info-btn" id="info-btn">info / about</button>
 
   </div><!-- /left-panel -->
 
@@ -706,7 +721,6 @@
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
       <button class="tab-btn"        data-tab="metar">METAR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
-      <button class="tab-btn"        data-tab="about">Info</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -1164,22 +1178,22 @@
 
       <div class="about-section">
         <h2>CYCLOBOT</h2>
-        <p>An interactive satellite imagery and atmospheric diagnostics platform built for tropical cyclone research and operational meteorology. Data is fetched and plotted on-demand from operational archives via a serverless backend running on Hugging Face Spaces.</p>
+        <p>An interactive satellite imagery and atmospheric diagnostics platform built for tropical cyclone research and operational meteorology. Originally hosted on Discord, this website hosts some of the more unique and frequently used features. Data is fetched and plotted on-demand from operational archives via a serverless backend running on Hugging Face Spaces.</p>
       </div>
 
       <div class="about-section">
         <h2>ABOUT</h2>
-        <p>Deelan Jariwala — atmospheric sciences student with a focus on tropical cyclone structure, intensity change, and satellite meteorology.</p>
+        <p>Deelan Jariwala is an atmospheric sciences student at the University of Miami with a focus on tropical cyclone structure and intensity change, occasional dabbling in Python and machine learning.</p>
       </div>
 
       <div class="about-section">
         <h2>TOOLS</h2>
         <table class="ref-table" style="max-width:540px">
-          <tr><td class="code" style="width:9em">GOES / Himawari</td><td class="note">GOES-R (16/18/19) and Himawari (8/9) geostationary imagery via AWS S3</td></tr>
+          <tr><td class="code" style="width:9em">GOES / Himawari</td><td class="note">GOES-R (16/18/19) and Himawari (8/9) geostationary imagery via AWS S3 and GridSat GOES/B1</td></tr>
           <tr><td class="code">McIDAS</td><td class="note">Historical geostationary archive via SSEC — GOES 1–15, GMS, MTSAT</td></tr>
-          <tr><td class="code">HAFS</td><td class="note">Real-time HAFS-A/B hurricane forecast model diagnostic plots</td></tr>
+          <tr><td class="code">HAFS</td><td class="note">Real-time and archived HAFS-A/B hurricane forecast model diagnostic plots</td></tr>
           <tr><td class="code">TC-PRIMED</td><td class="note">Passive microwave overpasses (85–91 and 36–37 GHz) from TC-PRIMED archive</td></tr>
-          <tr><td class="code">A-Deck</td><td class="note">Averaged ATCF model guidance track with SST overlay</td></tr>
+          <tr><td class="code">A-Deck</td><td class="note">Custom averaged ATCF model guidance track with SST underlay</td></tr>
           <tr><td class="code">SHIPS RI</td><td class="note">Random-forest 24h intensity prediction trained on SHIPS predictors</td></tr>
           <tr><td class="code">HRRR</td><td class="note">NOAA HRRR mesoscale model analysis and short-range forecast diagnostics</td></tr>
           <tr><td class="code">ERSST</td><td class="note">ERSSTv5 sea surface temperature anomaly composites via NOAA PSL</td></tr>
@@ -1190,7 +1204,7 @@
 
       <div class="about-section">
         <h2>LINKS</h2>
-        <a href="https://tcalert-cycloweb.hf.space/docs" target="_blank">API documentation (Swagger)</a>
+        <a href="https://x.com/WxTca" target="_blank">Deelan's Twitter Account</a>
       </div>
 
     </div><!-- /about-area -->
@@ -1221,25 +1235,34 @@
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
-      // About tab: hide image/toggle, show about panel
+      // If coming from about, restore normal view
       const aboutArea = document.getElementById('about-area');
       const viewToggle = document.querySelector('.view-toggle');
-      if (activeTab === 'about') {
-        viewOutput.style.display = 'none';
+      document.getElementById('info-btn').classList.remove('active');
+      if (aboutArea.classList.contains('visible')) {
+        aboutArea.classList.remove('visible');
+        viewToggle.style.display = '';
+        viewOutput.style.display = '';
         viewRef.classList.remove('visible');
-        viewToggle.style.display = 'none';
-        aboutArea.classList.add('visible');
-      } else {
-        if (aboutArea.classList.contains('visible')) {
-          aboutArea.classList.remove('visible');
-          viewToggle.style.display = '';
-          viewOutput.style.display = '';
-          viewRef.classList.remove('visible');
-          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-          document.querySelector('.view-btn[data-view="output"]').classList.add('active');
-        }
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.view-btn[data-view="output"]').classList.add('active');
       }
     });
+  });
+
+  // Info button (bottom-left)
+  document.getElementById('info-btn').addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.param-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('params-about').classList.add('active');
+    activeTab = 'about';
+    const aboutArea = document.getElementById('about-area');
+    const viewToggle = document.querySelector('.view-toggle');
+    viewOutput.style.display = 'none';
+    viewRef.classList.remove('visible');
+    viewToggle.style.display = 'none';
+    aboutArea.classList.add('visible');
+    document.getElementById('info-btn').classList.add('active');
   });
 
   // View toggle (output / ref)

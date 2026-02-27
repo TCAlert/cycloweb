@@ -271,6 +271,38 @@
     }
     .adeck-table tr:nth-child(even) td { background: #f8f8f8; }
 
+    /* ── About area ── */
+    .about-area {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.8rem 2rem;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+    .about-area.visible { display: flex; }
+
+    .about-section h2 {
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: .08em;
+      color: #666;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: .2rem;
+      margin-bottom: .5rem;
+    }
+    .about-section p {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #333;
+      max-width: 560px;
+    }
+    .about-section a {
+      font-size: 12px;
+      color: #111;
+      text-decoration: underline;
+    }
+
     /* ── Mobile ── */
     @media (max-width: 640px) {
       .layout { flex-direction: column; }
@@ -654,6 +686,11 @@
       <div class="status" id="mt-status"></div>
     </div>
 
+    <div class="param-panel" id="params-about">
+      <div class="param-title">Info</div>
+      <div class="param-desc">About this tool and its author.</div>
+    </div>
+
   </div><!-- /left-panel -->
 
   <!-- ── Right: tabs + image ── -->
@@ -669,6 +706,7 @@
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
       <button class="tab-btn"        data-tab="metar">METAR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
+      <button class="tab-btn"        data-tab="about">Info</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -1121,6 +1159,42 @@
 
     </div><!-- /view-ref -->
 
+    <!-- ── About area ── -->
+    <div class="about-area" id="about-area">
+
+      <div class="about-section">
+        <h2>CYCLOBOT</h2>
+        <p>An interactive satellite imagery and atmospheric diagnostics platform built for tropical cyclone research and operational meteorology. Data is fetched and plotted on-demand from operational archives via a serverless backend running on Hugging Face Spaces.</p>
+      </div>
+
+      <div class="about-section">
+        <h2>ABOUT</h2>
+        <p>Deelan Jariwala — atmospheric sciences student with a focus on tropical cyclone structure, intensity change, and satellite meteorology.</p>
+      </div>
+
+      <div class="about-section">
+        <h2>TOOLS</h2>
+        <table class="ref-table" style="max-width:540px">
+          <tr><td class="code" style="width:9em">GOES / Himawari</td><td class="note">GOES-R (16/18/19) and Himawari (8/9) geostationary imagery via AWS S3</td></tr>
+          <tr><td class="code">McIDAS</td><td class="note">Historical geostationary archive via SSEC — GOES 1–15, GMS, MTSAT</td></tr>
+          <tr><td class="code">HAFS</td><td class="note">Real-time HAFS-A/B hurricane forecast model diagnostic plots</td></tr>
+          <tr><td class="code">TC-PRIMED</td><td class="note">Passive microwave overpasses (85–91 and 36–37 GHz) from TC-PRIMED archive</td></tr>
+          <tr><td class="code">A-Deck</td><td class="note">Averaged ATCF model guidance track with SST overlay</td></tr>
+          <tr><td class="code">SHIPS RI</td><td class="note">Random-forest 24h intensity prediction trained on SHIPS predictors</td></tr>
+          <tr><td class="code">HRRR</td><td class="note">NOAA HRRR mesoscale model analysis and short-range forecast diagnostics</td></tr>
+          <tr><td class="code">ERSST</td><td class="note">ERSSTv5 sea surface temperature anomaly composites via NOAA PSL</td></tr>
+          <tr><td class="code">ERA5</td><td class="note">0.25° ERA5 reanalysis pressure-level and surface diagnostics via CDS API</td></tr>
+          <tr><td class="code">METAR</td><td class="note">96-hour surface observation time series from aviationweather.gov</td></tr>
+        </table>
+      </div>
+
+      <div class="about-section">
+        <h2>LINKS</h2>
+        <a href="https://tcalert-cycloweb.hf.space/docs" target="_blank">API documentation (Swagger)</a>
+      </div>
+
+    </div><!-- /about-area -->
+
     <div class="view-toggle">
       <button class="view-btn active" data-view="output">output</button>
       <button class="view-btn" data-view="ref">ref</button>
@@ -1147,6 +1221,24 @@
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
+      // About tab: hide image/toggle, show about panel
+      const aboutArea = document.getElementById('about-area');
+      const viewToggle = document.querySelector('.view-toggle');
+      if (activeTab === 'about') {
+        viewOutput.style.display = 'none';
+        viewRef.classList.remove('visible');
+        viewToggle.style.display = 'none';
+        aboutArea.classList.add('visible');
+      } else {
+        if (aboutArea.classList.contains('visible')) {
+          aboutArea.classList.remove('visible');
+          viewToggle.style.display = '';
+          viewOutput.style.display = '';
+          viewRef.classList.remove('visible');
+          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector('.view-btn[data-view="output"]').classList.add('active');
+        }
+      }
     });
   });
 

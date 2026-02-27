@@ -1248,6 +1248,7 @@
         document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.view-btn[data-view="output"]').classList.add('active');
       }
+      localStorage.setItem('cw_tab', activeTab); updateHash();
     });
   });
 
@@ -1264,6 +1265,7 @@
     viewToggle.style.display = 'none';
     aboutArea.classList.add('visible');
     document.getElementById('info-btn').classList.add('active');
+    localStorage.setItem('cw_tab', 'about'); updateHash();
   });
 
   // View toggle (output / ref)
@@ -1519,6 +1521,66 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('sh', btn);
     } catch (e) { setError('sh', btn, e.message); }
+  }
+
+
+  // ── Persistence, Enter-to-submit, URL state ──
+
+  let _suppressHash = false;
+
+  function restoreInputs() {
+    document.querySelectorAll('.field input').forEach(i => {
+      const v = localStorage.getItem('cw_' + i.id);
+      if (v !== null) i.value = v;
+    });
+  }
+
+  function updateHash() {
+    if (_suppressHash) return;
+    const p = new URLSearchParams({ tab: activeTab });
+    const panel = document.getElementById('params-' + activeTab);
+    if (panel) panel.querySelectorAll('input').forEach(i => {
+      if (i.value.trim()) p.set(i.id, i.value.trim());
+    });
+    history.replaceState(null, '', '#' + p.toString());
+  }
+
+  function applyHash() {
+    if (!window.location.hash || window.location.hash === '#') return false;
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    const tab = p.get('tab');
+    _suppressHash = true;
+    if (tab === 'about') {
+      document.getElementById('info-btn').click();
+    } else if (tab) {
+      document.querySelector(`.tab-btn[data-tab="${tab}"]`)?.click();
+    }
+    p.forEach((v, k) => { if (k !== 'tab') { const el = document.getElementById(k); if (el) el.value = v; } });
+    _suppressHash = false;
+    updateHash();
+    return true;
+  }
+
+  // Per-input: save to localStorage + debounced hash update; Enter → submit
+  let _ht = null;
+  document.querySelectorAll('.field input').forEach(i => {
+    i.addEventListener('input', () => {
+      localStorage.setItem('cw_' + i.id, i.value);
+      clearTimeout(_ht); _ht = setTimeout(updateHash, 400);
+    });
+    i.addEventListener('keydown', e => {
+      if (e.key === 'Enter') i.closest('.param-panel')?.querySelector('button.submit')?.click();
+    });
+  });
+
+  // Initialize: hash takes priority over localStorage
+  if (!applyHash()) {
+    restoreInputs();
+    const t = localStorage.getItem('cw_tab');
+    _suppressHash = true;
+    if (t === 'about') document.getElementById('info-btn').click();
+    else if (t) document.querySelector(`.tab-btn[data-tab="${t}"]`)?.click();
+    _suppressHash = false;
   }
 
 </script>

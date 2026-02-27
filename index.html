@@ -703,6 +703,45 @@
       <div class="status" id="mt-status"></div>
     </div>
 
+    <div class="param-panel" id="params-radar">
+      <div class="param-title">NEXRAD Radar</div>
+      <div class="param-desc">Archive NEXRAD reflectivity from AWS. Leave radar blank or use NONE to auto-select the nearest site to lat/lon.</div>
+      <div class="field">
+        <label>RADAR</label>
+        <input id="rad-radar" type="text" placeholder="NONE" maxlength="6" class="optional" />
+        <span class="hint">4-letter NEXRAD site ID — or NONE for nearest</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="rad-date" type="text" placeholder="05/20/2013" maxlength="10" />
+        <span class="hint">MM/DD/YYYY</span>
+      </div>
+      <div class="field">
+        <label>TIME (UTC)</label>
+        <input id="rad-time" type="text" placeholder="2030" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT</label>
+        <input id="rad-lat" type="text" placeholder="35" />
+      </div>
+      <div class="field">
+        <label>LON</label>
+        <input id="rad-lon" type="text" placeholder="-97.5" />
+      </div>
+      <div class="field">
+        <label>CMAP</label>
+        <input id="rad-cmap" type="text" placeholder="ref" class="optional" />
+        <span class="hint">ref &nbsp; ref3 &nbsp; ref5 &nbsp; ref6 &nbsp; ref10 &nbsp; gs &nbsp; spooky &nbsp; random</span>
+      </div>
+      <div class="field">
+        <label>ZOOM</label>
+        <input id="rad-zoom" type="text" placeholder="2" class="optional" />
+        <span class="hint">-2 to 1 (default 2 = full domain)</span>
+      </div>
+      <button class="submit" onclick="runRadar()">run</button>
+      <div class="status" id="rad-status"></div>
+    </div>
+
     <div class="param-panel" id="params-about"></div>
 
     <button class="info-btn" id="info-btn">info / about</button>
@@ -722,6 +761,7 @@
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
       <button class="tab-btn"        data-tab="metar">METAR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
+      <button class="tab-btn"        data-tab="radar">NEXRAD</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -1172,6 +1212,41 @@
         </div>
       </div><!-- /ref-metar -->
 
+      <!-- NEXRAD reference -->
+      <div class="ref-panel" id="ref-radar">
+        <div class="ref-title">NEXRAD Radar</div>
+        <div class="ref-body">
+          <div class="ref-section">
+            <h3>PARAMETERS</h3>
+            <table class="ref-table">
+              <tr><td class="code">radar</td><td class="note">4-letter NEXRAD site ID, e.g. KTLX, KBWI — or NONE for nearest to lat/lon</td></tr>
+              <tr><td class="code">date</td><td class="note">MM/DD/YYYY</td></tr>
+              <tr><td class="code">time</td><td class="note">4-digit UTC, e.g. 2030</td></tr>
+              <tr><td class="code">lat / lon</td><td class="note">Center point — used to find nearest site when radar is NONE</td></tr>
+              <tr><td class="code">cmap</td><td class="note">Colormap (optional, default ref)</td></tr>
+              <tr><td class="code">zoom</td><td class="note">-2 to 1, default 2 = full domain</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>COLORMAPS</h3>
+            <table class="ref-table">
+              <tr><td class="code">ref</td><td class="note">Standard NWS reflectivity</td></tr>
+              <tr><td class="code">ref3 ref5 ref6 ref10</td><td class="note">Reflectivity variants</td></tr>
+              <tr><td class="code">gs</td><td class="note">Grayscale</td></tr>
+              <tr><td class="code">spooky</td><td class="note">Halloween-themed</td></tr>
+              <tr><td class="code">random</td><td class="note">Random colormap each run</td></tr>
+            </table>
+          </div>
+          <div class="ref-section">
+            <h3>NOTES</h3>
+            <table class="ref-table">
+              <tr><td class="code">source</td><td class="note">NEXRAD Level-II archive via AWS S3</td></tr>
+              <tr><td class="code">coverage</td><td class="note">CONUS sites, 1991–present (availability varies by site and date)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div><!-- /ref-radar -->
+
     </div><!-- /view-ref -->
 
     <!-- ── About area ── -->
@@ -1200,6 +1275,7 @@
           <tr><td class="code">ERSST</td><td class="note">ERSSTv5 sea surface temperature anomaly composites via NOAA PSL</td></tr>
           <tr><td class="code">ERA5</td><td class="note">0.25° ERA5 reanalysis pressure-level and surface diagnostics via CDS API</td></tr>
           <tr><td class="code">METAR</td><td class="note">96-hour surface observation time series from aviationweather.gov</td></tr>
+          <tr><td class="code">NEXRAD</td><td class="note">Archive NEXRAD Level-II radar reflectivity via AWS S3 — CONUS sites, 1991–present</td></tr>
         </table>
       </div>
 
@@ -1232,7 +1308,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1505,6 +1581,24 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('mt', btn);
     } catch (e) { setError('mt', btn, e.message); }
+  }
+
+  async function runRadar() {
+    const btn = event.target;
+    setLoading('rad', btn);
+    try {
+      const data = await callAPI('/radar', {
+        radar: val('rad-radar') || 'NONE',
+        date:  val('rad-date'),
+        time:  val('rad-time'),
+        lat:   val('rad-lat'),
+        lon:   val('rad-lon'),
+        cmap:  val('rad-cmap'),
+        zoom:  val('rad-zoom'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('rad', btn);
+    } catch (e) { setError('rad', btn, e.message); }
   }
 
   async function runShipsri() {

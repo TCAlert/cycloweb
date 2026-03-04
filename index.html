@@ -305,6 +305,10 @@
       top: 0;
     }
 
+    /* ── Split view (image + table visible together) ── */
+    .image-area.split-view { justify-content: flex-start; }
+    .image-area.split-view img.visible { max-height: 50%; }
+
     /* ── About area ── */
     .about-area {
       display: none;
@@ -1364,6 +1368,7 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.param-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('view-output').classList.remove('split-view');
       btn.classList.add('active');
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
@@ -1670,6 +1675,7 @@
         storm: val('fd-storm'),
         year:  val('fd-year'),
       });
+      document.getElementById('view-output').classList.add('split-view');
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.fixes && data.fixes.length) {
         const lines = data.fixes.map(l => l.trim()).filter(l => l.length > 0);

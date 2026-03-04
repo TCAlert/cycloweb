@@ -294,6 +294,18 @@
       white-space: nowrap;
       color: #333;
     }
+    .fix-plot-btn {
+      background: #111;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 9px;
+      padding: .1rem .3rem;
+      white-space: nowrap;
+    }
+    .fix-plot-btn:hover { background: #444; }
+
     .fdeck-output thead td {
       font-weight: bold;
       color: #555;
@@ -1680,16 +1692,37 @@
       if (data.fixes && data.fixes.length) {
         const lines = data.fixes.map(l => l.trim()).filter(l => l.length > 0);
         const cols  = lines[0].split(',').length;
+        window._fdeckLines = lines;
         document.getElementById('fdeck-output-header').textContent =
           `${lines.length} fix${lines.length !== 1 ? 'es' : ''}`;
-        document.getElementById('fdeck-output-body').innerHTML = lines.map(line => {
+        document.getElementById('fdeck-output-body').innerHTML = lines.map((line, i) => {
           const cells = line.split(',').map(c => `<td>${c.trim()}</td>`).join('');
-          return `<tr>${cells}</tr>`;
+          return `<tr><td><button class="fix-plot-btn" onclick="plotFromFix(${i})">plot</button></td>${cells}</tr>`;
         }).join('');
         document.getElementById('fdeck-output-wrap').classList.add('visible');
       }
       setDone('fd', btn);
     } catch (e) { setError('fd', btn, e.message); }
+  }
+
+  function plotFromFix(i) {
+    const line   = window._fdeckLines[i];
+    const parts  = line.split(',').map(s => s.trim());
+    const dt     = parts[2];
+    const date   = `${dt.slice(4,6)}/${dt.slice(6,8)}/${dt.slice(0,4)}`;
+    const time   = dt.slice(8,10) + '00';
+    const latStr = parts[7];
+    const lat    = (parseFloat(latStr.slice(0,-1)) / 100 * (latStr.slice(-1) === 'S' ? -1 : 1)).toFixed(1);
+    const lonStr = parts[8];
+    const lon    = (parseFloat(lonStr.slice(0,-1)) / 100 * (lonStr.slice(-1) === 'W' ? -1 : 1)).toFixed(1);
+
+    document.querySelector('.tab-btn[data-tab="plot"]').click();
+    document.getElementById('plot-date').value = date;
+    document.getElementById('plot-time').value = time;
+    document.getElementById('plot-lat').value  = lat;
+    document.getElementById('plot-lon').value  = lon;
+    document.getElementById('plot-band').value = '13';
+    document.getElementById('plot-cmap').value = 'bd.5';
   }
 
   async function runShipsri() {

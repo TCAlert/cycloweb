@@ -272,6 +272,39 @@
     }
     .adeck-table tr:nth-child(even) td { background: #f8f8f8; }
 
+    /* ── F-Deck fix output ── */
+    .fdeck-output-wrap {
+      display: none;
+      margin-top: .6rem;
+      width: 100%;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+    }
+    .fdeck-output-wrap.visible { display: block; }
+    .fdeck-output {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+      font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+    }
+    .fdeck-output tr:nth-child(even) td { background: #f8f8f8; }
+    .fdeck-output td {
+      padding: .1rem .4rem;
+      white-space: nowrap;
+      color: #333;
+    }
+    .fdeck-output thead td {
+      font-weight: bold;
+      color: #555;
+      font-size: 9px;
+      letter-spacing: .05em;
+      border-bottom: 1px solid #aaa;
+      background: #fff;
+      position: sticky;
+      top: 0;
+    }
+
     /* ── About area ── */
     .about-area {
       display: none;
@@ -742,6 +775,22 @@
       <div class="status" id="rad-status"></div>
     </div>
 
+    <div class="param-panel" id="params-fdeck">
+      <div class="param-title">F-Deck Fixes</div>
+      <div class="param-desc">Subjective Dvorak (DVTS) fixes from the NHC F-Deck, colored by CI number.</div>
+      <div class="field">
+        <label>STORM ID</label>
+        <input id="fd-storm" type="text" placeholder="AL11" maxlength="6" />
+        <span class="hint">basin + number, e.g. AL11 EP05 CP01</span>
+      </div>
+      <div class="field">
+        <label>YEAR</label>
+        <input id="fd-year" type="text" placeholder="2017" maxlength="4" />
+      </div>
+      <button class="submit" onclick="runFdeck()">run</button>
+      <div class="status" id="fd-status"></div>
+    </div>
+
     <div class="param-panel" id="params-about"></div>
 
     <button class="info-btn" id="info-btn">info / about</button>
@@ -760,12 +809,19 @@
       <button class="tab-btn"        data-tab="era5">ERA5</button>
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
+      <button class="tab-btn"        data-tab="fdeck">F-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
       <button class="tab-btn"        data-tab="metar">METAR</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
       <img id="result-img" src="" alt="" />
+      <div class="fdeck-output-wrap" id="fdeck-output-wrap">
+        <table class="fdeck-output">
+          <thead><tr><td colspan="99" id="fdeck-output-header"></td></tr></thead>
+          <tbody id="fdeck-output-body"></tbody>
+        </table>
+      </div>
       <div class="adeck-table-wrap" id="adeck-table-wrap">
         <table class="adeck-table">
           <thead>
@@ -1603,6 +1659,31 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('rad', btn);
     } catch (e) { setError('rad', btn, e.message); }
+  }
+
+  async function runFdeck() {
+    const btn = event.target;
+    setLoading('fd', btn);
+    document.getElementById('fdeck-output-wrap').classList.remove('visible');
+    try {
+      const data = await callAPI('/fdeck', {
+        storm: val('fd-storm'),
+        year:  val('fd-year'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      if (data.fixes && data.fixes.length) {
+        const lines = data.fixes.map(l => l.trim()).filter(l => l.length > 0);
+        const cols  = lines[0].split(',').length;
+        document.getElementById('fdeck-output-header').textContent =
+          `${lines.length} fix${lines.length !== 1 ? 'es' : ''}`;
+        document.getElementById('fdeck-output-body').innerHTML = lines.map(line => {
+          const cells = line.split(',').map(c => `<td>${c.trim()}</td>`).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+        document.getElementById('fdeck-output-wrap').classList.add('visible');
+      }
+      setDone('fd', btn);
+    } catch (e) { setError('fd', btn, e.message); }
   }
 
   async function runShipsri() {

@@ -752,6 +752,40 @@
       <div class="status" id="er-status"></div>
     </div>
 
+    <div class="param-panel" id="params-ersst-ts">
+      <div class="param-title">ERSST Timeseries</div>
+      <div class="param-desc">ERSSTv5 regional SST anomaly timeseries via PSL OPeNDAP. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="et-month" type="text" placeholder="9" maxlength="2" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>START YEAR</label>
+        <input id="et-start" type="text" placeholder="1950" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>END YEAR</label>
+        <input id="et-end" type="text" placeholder="2024" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT BOUNDS</label>
+        <input id="et-lat1" type="text" placeholder="0" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="et-lat2" type="text" placeholder="30" style="width:3.5rem" />
+        <span class="hint">S to N</span>
+      </div>
+      <div class="field">
+        <label>LON BOUNDS</label>
+        <input id="et-lon1" type="text" placeholder="160" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="et-lon2" type="text" placeholder="270" style="width:3.5rem" />
+        <span class="hint">W to E (0–360)</span>
+      </div>
+      <button class="submit" onclick="runErsstTs()">run</button>
+      <div class="status" id="et-status"></div>
+    </div>
+
     <div class="param-panel" id="params-ace">
       <div class="param-title">ACE Timeseries</div>
       <div class="param-desc">Accumulated Cyclone Energy by year from HURDAT2. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
@@ -923,6 +957,7 @@
       <button class="tab-btn"        data-tab="hrrr">HRRR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
+      <button class="tab-btn"        data-tab="ersst-ts">ERSST TS</button>
       <button class="tab-btn"        data-tab="ace">ACE</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="fdeck">F-Deck</button>
@@ -954,6 +989,25 @@
           <tbody id="adeck-table-body"></tbody>
         </table>
       </div>
+      <div class="ace-output-wrap" id="ersst-ts-output-wrap">
+        <div class="ace-ersst-btns">
+          <button class="ace-ersst-btn" onclick="ersstTsToErsst('top')">top 10 → ERSST</button>
+          <button class="ace-ersst-btn" onclick="ersstTsToErsst('bottom')">bottom 10 → ERSST</button>
+        </div>
+        <div class="ace-table-wrap">
+          <table class="ace-table">
+            <thead>
+              <tr>
+                <th onclick="sortErsstTs('rank')">Rank <span id="et-sort-rank"></span></th>
+                <th onclick="sortErsstTs('year')">Year <span id="et-sort-year"></span></th>
+                <th onclick="sortErsstTs('anom')">Anomaly (°C) <span id="et-sort-anom"></span></th>
+              </tr>
+            </thead>
+            <tbody id="ersst-ts-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="ace-output-wrap" id="ace-output-wrap">
         <div class="ace-ersst-btns">
           <button class="ace-ersst-btn" onclick="aceToErsst('top')">top 10 → ERSST</button>
@@ -1507,7 +1561,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', ace: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1738,6 +1792,77 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('er', btn);
     } catch (e) { setError('er', btn, e.message); }
+  }
+
+  // ── ERSST Timeseries ─────────────────────────────────────────────────────
+
+  let _etData    = [];
+  let _etTop10   = [];
+  let _etBottom10 = [];
+  let _etSortCol = 'rank';
+  let _etSortAsc = true;
+
+  function renderErsstTsTable() {
+    const rows = [..._etData].sort((a, b) => {
+      const v = _etSortAsc ? 1 : -1;
+      return a[_etSortCol] < b[_etSortCol] ? -v : a[_etSortCol] > b[_etSortCol] ? v : 0;
+    });
+    const top10Set    = new Set(_etTop10);
+    const bottom10Set = new Set(_etBottom10);
+    document.getElementById('ersst-ts-table-body').innerHTML = rows.map(r => {
+      const cls = top10Set.has(r.year) ? 'ace-top' : bottom10Set.has(r.year) ? 'ace-bot' : '';
+      return `<tr class="${cls}"><td>${r.rank}</td><td>${r.year}</td><td>${r.anom.toFixed(2)}</td></tr>`;
+    }).join('');
+  }
+
+  function sortErsstTs(col) {
+    if (_etSortCol === col) {
+      _etSortAsc = !_etSortAsc;
+    } else {
+      _etSortCol = col;
+      _etSortAsc = col !== 'anom';
+    }
+    ['rank', 'year', 'anom'].forEach(c => {
+      document.getElementById('et-sort-' + c).textContent =
+        c === _etSortCol ? (_etSortAsc ? ' ▲' : ' ▼') : '';
+    });
+    renderErsstTsTable();
+  }
+
+  async function runErsstTs() {
+    const btn = event.target;
+    setLoading('et', btn);
+    document.getElementById('ersst-ts-output-wrap').classList.remove('visible');
+    try {
+      const data = await callAPI('/ersst-ts', {
+        month:      val('et-month'),
+        start_year: val('et-start'),
+        end_year:   val('et-end'),
+        lat1:       val('et-lat1'),
+        lat2:       val('et-lat2'),
+        lon1:       val('et-lon1'),
+        lon2:       val('et-lon2'),
+      });
+      _etData     = data.years;
+      _etTop10    = data.top10;
+      _etBottom10 = data.bottom10;
+      _etSortCol  = 'rank';
+      _etSortAsc  = true;
+      document.getElementById('et-sort-rank').textContent = ' ▲';
+      document.getElementById('et-sort-year').textContent = '';
+      document.getElementById('et-sort-anom').textContent = '';
+      renderErsstTsTable();
+      document.getElementById('ersst-ts-output-wrap').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      switchView('table');
+      setDone('et', btn);
+    } catch (e) { setError('et', btn, e.message); }
+  }
+
+  function ersstTsToErsst(which) {
+    const years = (which === 'top' ? _etTop10 : _etBottom10).join(',');
+    document.querySelector('.tab-btn[data-tab="ersst"]').click();
+    document.getElementById('er-years').value = years;
   }
 
   // ── ACE ──────────────────────────────────────────────────────────────────

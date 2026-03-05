@@ -329,6 +329,63 @@
 
     .fix-row-active td { background: #fffbcc !important; }
 
+    /* ── ACE table ── */
+    .ace-output-wrap {
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
+    }
+    .ace-output-wrap.visible { display: flex; }
+    .ace-ersst-btns {
+      display: flex;
+      gap: .5rem;
+      padding: .3rem 0 .4rem;
+      flex-shrink: 0;
+    }
+    .ace-ersst-btn {
+      background: #111;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 9px;
+      padding: .2rem .5rem;
+    }
+    .ace-ersst-btn:hover { background: #444; }
+    .ace-table-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+    }
+    .ace-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+    }
+    .ace-table th {
+      border-bottom: 1px solid #aaa;
+      padding: .2rem .8rem;
+      text-align: center;
+      font-size: 10px;
+      cursor: pointer;
+      user-select: none;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      white-space: nowrap;
+    }
+    .ace-table th:hover { background: #f0f0f0; }
+    .ace-table td {
+      padding: .15rem .8rem;
+      text-align: center;
+    }
+    .ace-table tr:nth-child(even) td { background: #f8f8f8; }
+    .ace-top td { background: #e8f5e9 !important; }
+    .ace-bot td { background: #fce4ec !important; }
+
     /* ── About area ── */
     .about-area {
       display: none;
@@ -695,6 +752,40 @@
       <div class="status" id="er-status"></div>
     </div>
 
+    <div class="param-panel" id="params-ace">
+      <div class="param-title">ACE Timeseries</div>
+      <div class="param-desc">Accumulated Cyclone Energy by year from HURDAT2. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
+      <div class="field">
+        <label>BASIN</label>
+        <input id="ac-basin" type="text" placeholder="AL" maxlength="2" />
+        <span class="hint">AL EP</span>
+      </div>
+      <div class="field">
+        <label>START YEAR</label>
+        <input id="ac-start" type="text" placeholder="1951" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>END YEAR</label>
+        <input id="ac-end" type="text" placeholder="2024" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT BOUNDS</label>
+        <input id="ac-lat1" type="text" placeholder="0" class="optional" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="ac-lat2" type="text" placeholder="90" class="optional" style="width:3.5rem" />
+        <span class="hint">optional, S to N</span>
+      </div>
+      <div class="field">
+        <label>LON BOUNDS</label>
+        <input id="ac-lon1" type="text" placeholder="-120" class="optional" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="ac-lon2" type="text" placeholder="0" class="optional" style="width:3.5rem" />
+        <span class="hint">optional, W to E</span>
+      </div>
+      <button class="submit" onclick="runAce()">run</button>
+      <div class="status" id="ac-status"></div>
+    </div>
+
     <div class="param-panel" id="params-era5">
       <div class="param-title">ERA5 Reanalysis</div>
       <div class="param-desc">0.25° ERA5 pressure-level and surface diagnostic plots via CDS API.</div>
@@ -832,6 +923,7 @@
       <button class="tab-btn"        data-tab="hrrr">HRRR</button>
       <button class="tab-btn"        data-tab="era5">ERA5</button>
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
+      <button class="tab-btn"        data-tab="ace">ACE</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="fdeck">F-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
@@ -861,6 +953,24 @@
           </thead>
           <tbody id="adeck-table-body"></tbody>
         </table>
+      </div>
+      <div class="ace-output-wrap" id="ace-output-wrap">
+        <div class="ace-ersst-btns">
+          <button class="ace-ersst-btn" onclick="aceToErsst('top')">top 10 → ERSST</button>
+          <button class="ace-ersst-btn" onclick="aceToErsst('bottom')">bottom 10 → ERSST</button>
+        </div>
+        <div class="ace-table-wrap">
+          <table class="ace-table">
+            <thead>
+              <tr>
+                <th onclick="sortAce('rank')">Rank <span id="ace-sort-rank"></span></th>
+                <th onclick="sortAce('year')">Year <span id="ace-sort-year"></span></th>
+                <th onclick="sortAce('ace')">Season ACE <span id="ace-sort-ace"></span></th>
+              </tr>
+            </thead>
+            <tbody id="ace-table-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1397,7 +1507,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', ace: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1630,6 +1740,78 @@
     } catch (e) { setError('er', btn, e.message); }
   }
 
+  // ── ACE ──────────────────────────────────────────────────────────────────
+
+  let _aceData = [];     // full row array [{year, ace, rank}]
+  let _aceTop10 = [];
+  let _aceBottom10 = [];
+  let _aceSortCol = 'rank';
+  let _aceSortAsc = true;
+
+  function renderAceTable() {
+    const rows = [..._aceData].sort((a, b) => {
+      const v = _aceSortAsc ? 1 : -1;
+      return a[_aceSortCol] < b[_aceSortCol] ? -v : a[_aceSortCol] > b[_aceSortCol] ? v : 0;
+    });
+    const top10Set    = new Set(_aceTop10);
+    const bottom10Set = new Set(_aceBottom10);
+    document.getElementById('ace-table-body').innerHTML = rows.map(r => {
+      const cls = top10Set.has(r.year) ? 'ace-top' : bottom10Set.has(r.year) ? 'ace-bot' : '';
+      return `<tr class="${cls}"><td>${r.rank}</td><td>${r.year}</td><td>${r.ace}</td></tr>`;
+    }).join('');
+  }
+
+  function sortAce(col) {
+    if (_aceSortCol === col) {
+      _aceSortAsc = !_aceSortAsc;
+    } else {
+      _aceSortCol = col;
+      _aceSortAsc = col === 'rank';   // rank/year default ascending, ace default descending
+      if (col === 'ace') _aceSortAsc = false;
+    }
+    ['rank', 'year', 'ace'].forEach(c => {
+      document.getElementById('ace-sort-' + c).textContent =
+        c === _aceSortCol ? (_aceSortAsc ? ' ▲' : ' ▼') : '';
+    });
+    renderAceTable();
+  }
+
+  async function runAce() {
+    const btn = event.target;
+    setLoading('ac', btn);
+    document.getElementById('ace-output-wrap').classList.remove('visible');
+    try {
+      const params = {
+        basin:      val('ac-basin'),
+        start_year: val('ac-start'),
+        end_year:   val('ac-end'),
+      };
+      const lat1 = val('ac-lat1'), lat2 = val('ac-lat2');
+      const lon1 = val('ac-lon1'), lon2 = val('ac-lon2');
+      if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
+      if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
+      const data = await callAPI('/ace', params);
+      _aceData    = data.years;
+      _aceTop10   = data.top10;
+      _aceBottom10 = data.bottom10;
+      _aceSortCol = 'rank';
+      _aceSortAsc = true;
+      document.getElementById('ace-sort-rank').textContent = ' ▲';
+      document.getElementById('ace-sort-year').textContent = '';
+      document.getElementById('ace-sort-ace').textContent  = '';
+      renderAceTable();
+      document.getElementById('ace-output-wrap').classList.add('visible');
+      switchView('table');
+      setDone('ac', btn);
+    } catch (e) { setError('ac', btn, e.message); }
+  }
+
+  function aceToErsst(which) {
+    const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
+    document.querySelector('.tab-btn[data-tab="ersst"]').click();
+    document.getElementById('er-years').value = years;
+  }
+
   async function runEra5() {
     const btn = event.target;
     setLoading('e5', btn);
@@ -1728,7 +1910,7 @@
     const dt     = parts[2];
     const year   = dt.slice(0, 4);
     const date   = `${dt.slice(4,6)}/${dt.slice(6,8)}/${year}`;
-    const time   = dt.slice(8,10) + '00';
+    const time   = dt.slice(8,12);
     const latStr = parts[7];
     const lat    = (parseFloat(latStr.slice(0,-1)) / 100 * (latStr.slice(-1) === 'S' ? -1 : 1)).toFixed(1);
     const lonStr = parts[8];

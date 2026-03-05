@@ -993,6 +993,9 @@
         <div class="ace-ersst-btns">
           <button class="ace-ersst-btn" onclick="ersstTsToErsst('top')">top 10 → ERSST</button>
           <button class="ace-ersst-btn" onclick="ersstTsToErsst('bottom')">bottom 10 → ERSST</button>
+          <input id="et-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <button class="ace-ersst-btn" onclick="runCorrInline('ersst-ts')">→ Corr</button>
+          <span class="status" id="et-corr-status" style="font-size:9px"></span>
         </div>
         <div class="ace-table-wrap">
           <table class="ace-table">
@@ -1012,6 +1015,9 @@
         <div class="ace-ersst-btns">
           <button class="ace-ersst-btn" onclick="aceToErsst('top')">top 10 → ERSST</button>
           <button class="ace-ersst-btn" onclick="aceToErsst('bottom')">bottom 10 → ERSST</button>
+          <input id="ac-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <button class="ace-ersst-btn" onclick="runCorrInline('ace')">→ Corr</button>
+          <span class="status" id="ac-corr-status" style="font-size:9px"></span>
         </div>
         <div class="ace-table-wrap">
           <table class="ace-table">
@@ -1935,6 +1941,54 @@
     const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
     document.querySelector('.tab-btn[data-tab="ersst"]').click();
     document.getElementById('er-years').value = years;
+  }
+
+  // ── Correlation ───────────────────────────────────────────────────────────
+
+  async function runCorrInline(source) {
+    const btn        = event.target;
+    const statusId   = source === 'ersst-ts' ? 'et-corr-status' : 'ac-corr-status';
+    const monthId    = source === 'ersst-ts' ? 'et-corr-month'  : 'ac-corr-month';
+    const statusEl   = document.getElementById(statusId);
+    statusEl.className = 'status loading';
+    statusEl.textContent = 'working...';
+    btn.disabled = true;
+    try {
+      let series, label, startYear, endYear, lat1, lat2, lon1, lon2;
+      if (source === 'ersst-ts') {
+        series    = _etData.map(r => r.anom);
+        label     = 'ERSST TS';
+        startYear = _etData[0]?.year ?? '';
+        endYear   = _etData[_etData.length - 1]?.year ?? '';
+        lat1 = val('et-lat1'); lat2 = val('et-lat2');
+        lon1 = val('et-lon1'); lon2 = val('et-lon2');
+      } else {
+        series    = _aceData.map(r => r.ace);
+        label     = `${val('ac-basin').toUpperCase()} ACE`;
+        startYear = val('ac-start');
+        endYear   = val('ac-end');
+        const basin = val('ac-basin').toLowerCase();
+        if (basin === 'ep') { lat1 = '0'; lat2 = '90'; lon1 = '-180'; lon2 = '-80'; }
+        else                { lat1 = '0'; lat2 = '90'; lon1 = '-100'; lon2 = '0';   }
+      }
+      const params = {
+        csv:        series.join(','),
+        corr_month: document.getElementById(monthId).value.trim(),
+        start_year: String(startYear),
+        end_year:   String(endYear),
+        label,
+      };
+      if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
+      if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
+      const data = await callAPI('/corr', params);
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      statusEl.className = 'status success';
+      statusEl.textContent = 'done';
+    } catch (e) {
+      statusEl.className = 'status error';
+      statusEl.textContent = e.message;
+    }
+    btn.disabled = false;
   }
 
   async function runEra5() {

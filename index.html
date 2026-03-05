@@ -1667,7 +1667,10 @@
     const res = await fetch(url);
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(body.detail || res.statusText);
+      const detail = Array.isArray(body.detail)
+        ? body.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+        : (body.detail || res.statusText);
+      throw new Error(detail);
     }
     return res.json();
   }
@@ -1967,17 +1970,33 @@
         label     = `${val('ac-basin').toUpperCase()} ACE`;
         startYear = val('ac-start');
         endYear   = val('ac-end');
-        const basin = val('ac-basin').toLowerCase();
-        if (basin === 'ep') { lat1 = '0'; lat2 = '90'; lon1 = '-180'; lon2 = '-80'; }
-        else                { lat1 = '0'; lat2 = '90'; lon1 = '-100'; lon2 = '0';   }
+        const userLat1 = val('ac-lat1'), userLat2 = val('ac-lat2');
+        const userLon1 = val('ac-lon1'), userLon2 = val('ac-lon2');
+        if (userLat1 && userLat2 && userLon1 && userLon2) {
+          lat1 = userLat1; lat2 = userLat2; lon1 = userLon1; lon2 = userLon2;
+        } else {
+          const basin = val('ac-basin').toLowerCase();
+          if (basin === 'ep') { lat1 = '0'; lat2 = '90'; lon1 = '-180'; lon2 = '-80'; }
+          else                { lat1 = '0'; lat2 = '90'; lon1 = '-100'; lon2 = '0';   }
+        }
+      }
+      const monthInput = document.getElementById(monthId);
+      const corrMonth  = monthInput.value.trim() ||
+                         (source === 'ersst-ts' ? val('et-month') : '');
+      if (!corrMonth) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'enter a month';
+        btn.disabled = false;
+        return;
       }
       const params = {
         csv:        series.join(','),
-        corr_month: document.getElementById(monthId).value.trim(),
+        corr_month: corrMonth,
         start_year: String(startYear),
         end_year:   String(endYear),
         label,
       };
+      if (source === 'ace') { const aceDay = val('ac-day'); if (aceDay) params.day = aceDay; }
       if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
       const data = await callAPI('/corr', params);

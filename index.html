@@ -803,6 +803,11 @@
         <input id="ac-end" type="text" placeholder="2024" maxlength="4" />
       </div>
       <div class="field">
+        <label>CUTOFF</label>
+        <input id="ac-day" type="text" placeholder="12-31" maxlength="5" class="optional" style="width:4rem" value="12-31" />
+        <span class="hint">optional, MM-DD season cutoff</span>
+      </div>
+      <div class="field">
         <label>LAT BOUNDS</label>
         <input id="ac-lat1" type="text" placeholder="0" class="optional" style="width:3.5rem" />
         <span style="padding:0 .2rem">–</span>
@@ -1621,6 +1626,13 @@
 
   function val(id) { return document.getElementById(id).value.trim(); }
 
+  function dateToDoy(str) {
+    const [m, d] = str.split('-').map(Number);
+    const date  = new Date(2001, m - 1, d); // 2001 = non-leap year
+    const start = new Date(2001, 0, 0);
+    return Math.floor((date - start) / 86400000);
+  }
+
   function setStatus(prefix, type, msg) {
     const el = document.getElementById(prefix + '-status');
     el.className = 'status ' + type;
@@ -1922,8 +1934,10 @@
       };
       const lat1 = val('ac-lat1'), lat2 = val('ac-lat2');
       const lon1 = val('ac-lon1'), lon2 = val('ac-lon2');
+      const aceDayRaw = document.getElementById('ac-day').value.trim();
       if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
+      if (aceDayRaw) params.day = dateToDoy(aceDayRaw);
       const data = await callAPI('/ace', params);
       _aceData    = data.years;
       _aceTop10   = data.top10;
@@ -1996,7 +2010,7 @@
         end_year:   String(endYear),
         label,
       };
-      if (source === 'ace') { const aceDay = val('ac-day'); if (aceDay) params.day = aceDay; }
+      if (source === 'ace') { const aceDay = document.getElementById('ac-day')?.value?.trim(); if (aceDay) params.day = dateToDoy(aceDay); }
       if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
       const data = await callAPI('/corr', params);

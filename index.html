@@ -976,7 +976,7 @@
 
     <div class="param-panel" id="params-fdeck">
       <div class="param-title">F-Deck Fixes</div>
-      <div class="param-desc">Subjective Dvorak (DVTS) fixes from the NHC F-Deck, colored by CI number.</div>
+      <div class="param-desc">Dvorak fixes from the NHC F-Deck, colored by CI number.</div>
       <div class="field">
         <label>STORM ID</label>
         <input id="fd-storm" type="text" placeholder="AL11" maxlength="6" />
@@ -985,6 +985,13 @@
       <div class="field">
         <label>YEAR</label>
         <input id="fd-year" type="text" placeholder="2017" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>FIX TYPE</label>
+        <select id="fd-fixtype" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;background:#fff">
+          <option value="DVTS">Subjective Dvorak (DVTS)</option>
+          <option value="DVTO">Objective Dvorak (DVTO)</option>
+        </select>
       </div>
       <button class="submit" onclick="runFdeck()">run</button>
       <div class="status" id="fd-status"></div>
@@ -2233,8 +2240,9 @@
     document.getElementById('fdeck-output-wrap').classList.remove('visible');
     try {
       const data = await callAPI('/fdeck', {
-        storm: val('fd-storm'),
-        year:  val('fd-year'),
+        storm:    val('fd-storm'),
+        year:     val('fd-year'),
+        fix_type: document.getElementById('fd-fixtype').value,
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.fixes && data.fixes.length) {

@@ -2296,7 +2296,7 @@
     document.getElementById('plot-time').value = time;
     document.getElementById('plot-lat').value  = lat;
     document.getElementById('plot-lon').value  = lon;
-    document.getElementById('plot-band').value = '13';
+    document.getElementById('plot-band').value = sat === 'b1' ? '4' : '13';
     document.getElementById('plot-cmap').value = 'bd.5';
   }
 

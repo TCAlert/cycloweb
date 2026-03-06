@@ -827,6 +827,49 @@
       <div class="status" id="ac-status"></div>
     </div>
 
+    <div class="param-panel" id="params-pca">
+      <div class="param-title">ERSST PCA / EOF</div>
+      <div class="param-desc">Empirical Orthogonal Function analysis of ERSSTv5 SST anomalies. Returns the PC timeseries for the selected EOF, detrended and z-scored.</div>
+      <div class="field">
+        <label>START YEAR</label>
+        <input id="pca-start" type="text" placeholder="1951" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>END YEAR</label>
+        <input id="pca-end" type="text" placeholder="2025" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT BOUNDS</label>
+        <input id="pca-lat1" type="text" placeholder="0" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="pca-lat2" type="text" placeholder="70" style="width:3.5rem" />
+        <span class="hint">S to N</span>
+      </div>
+      <div class="field">
+        <label>LON BOUNDS</label>
+        <input id="pca-lon1" type="text" placeholder="270" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="pca-lon2" type="text" placeholder="359" style="width:3.5rem" />
+        <span class="hint">W to E</span>
+      </div>
+      <div class="field">
+        <label>EOF NUM</label>
+        <input id="pca-eof" type="text" placeholder="1" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>PCA MONTHS</label>
+        <input id="pca-months" type="text" placeholder="1,2,...,12" class="optional" />
+        <span class="hint">optional, comma-sep, default all 12</span>
+      </div>
+      <div class="field">
+        <label>TABLE MONTH</label>
+        <input id="pca-table-month" type="text" placeholder="" maxlength="2" class="optional" />
+        <span class="hint">optional, default: avg across PCA months</span>
+      </div>
+      <button class="submit" onclick="runPca()">run</button>
+      <div class="status" id="pca-status"></div>
+    </div>
+
     <div class="param-panel" id="params-era5">
       <div class="param-title">ERA5 Reanalysis</div>
       <div class="param-desc">0.25° ERA5 pressure-level and surface diagnostic plots via CDS API.</div>
@@ -966,6 +1009,7 @@
       <button class="tab-btn"        data-tab="ersst">ERSST</button>
       <button class="tab-btn"        data-tab="ersst-ts">ERSST TS</button>
       <button class="tab-btn"        data-tab="ace">ACE</button>
+      <button class="tab-btn"        data-tab="pca">PCA</button>
       <button class="tab-btn"        data-tab="adeck">A-Deck</button>
       <button class="tab-btn"        data-tab="fdeck">F-Deck</button>
       <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
@@ -1036,6 +1080,26 @@
               </tr>
             </thead>
             <tbody id="ace-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="ace-output-wrap" id="pca-output-wrap">
+        <div class="ace-ersst-btns">
+          <input id="pca-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <button class="ace-ersst-btn" onclick="runCorrInline('pca')">→ Corr</button>
+          <span class="status" id="pca-corr-status" style="font-size:9px"></span>
+        </div>
+        <div class="ace-table-wrap">
+          <table class="ace-table">
+            <thead>
+              <tr>
+                <th onclick="sortPca('rank')">Rank <span id="pca-sort-rank"></span></th>
+                <th onclick="sortPca('year')">Year <span id="pca-sort-year"></span></th>
+                <th onclick="sortPca('pc')">PC Value <span id="pca-sort-pc"></span></th>
+              </tr>
+            </thead>
+            <tbody id="pca-table-body"></tbody>
           </table>
         </div>
       </div>
@@ -1574,7 +1638,7 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -1966,6 +2030,70 @@
     } catch (e) { setError('ac', btn, e.message); }
   }
 
+  // ── PCA ───────────────────────────────────────────────────────────────────
+
+  let _pcaData = [];
+  let _pcaSortCol = 'rank';
+  let _pcaSortAsc = true;
+
+  function renderPcaTable() {
+    const rows = [..._pcaData].sort((a, b) => {
+      const v = _pcaSortAsc ? 1 : -1;
+      return a[_pcaSortCol] < b[_pcaSortCol] ? -v : a[_pcaSortCol] > b[_pcaSortCol] ? v : 0;
+    });
+    document.getElementById('pca-table-body').innerHTML = rows.map(r =>
+      `<tr><td>${r.rank}</td><td>${r.year}</td><td>${r.pc.toFixed(3)}</td></tr>`
+    ).join('');
+  }
+
+  function sortPca(col) {
+    if (_pcaSortCol === col) {
+      _pcaSortAsc = !_pcaSortAsc;
+    } else {
+      _pcaSortCol = col;
+      _pcaSortAsc = col !== 'pc';
+    }
+    ['rank', 'year', 'pc'].forEach(c => {
+      document.getElementById('pca-sort-' + c).textContent =
+        c === _pcaSortCol ? (_pcaSortAsc ? ' ▲' : ' ▼') : '';
+    });
+    renderPcaTable();
+  }
+
+  async function runPca() {
+    const btn = event.target;
+    setLoading('pca', btn);
+    document.getElementById('pca-output-wrap').classList.remove('visible');
+    try {
+      const params = {
+        start_year: val('pca-start'),
+        end_year:   val('pca-end'),
+        lat1:       val('pca-lat1'),
+        lat2:       val('pca-lat2'),
+        lon1:       val('pca-lon1'),
+        lon2:       val('pca-lon2'),
+        eof_num:    val('pca-eof') || '1',
+      };
+      const pcaMonths  = document.getElementById('pca-months')?.value?.trim();
+      const tableMonth = document.getElementById('pca-table-month')?.value?.trim();
+      if (pcaMonths)  params.pca_months  = pcaMonths;
+      if (tableMonth) params.table_month = tableMonth;
+      const data = await callAPI('/pca', params);
+      const sorted = [...data.years].sort((a, b) => b.pc - a.pc);
+      sorted.forEach((r, i) => r.rank = i + 1);
+      _pcaData = data.years.map(r => sorted.find(s => s.year === r.year));
+      _pcaSortCol = 'rank';
+      _pcaSortAsc = true;
+      document.getElementById('pca-sort-rank').textContent = ' ▲';
+      document.getElementById('pca-sort-year').textContent = '';
+      document.getElementById('pca-sort-pc').textContent   = '';
+      renderPcaTable();
+      document.getElementById('pca-output-wrap').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('pca', btn);
+    } catch (e) { setError('pca', btn, e.message); }
+  }
+
   function aceToErsst(which) {
     const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
     document.querySelector('.tab-btn[data-tab="ersst"]').click();
@@ -1976,8 +2104,8 @@
 
   async function runCorrInline(source) {
     const btn        = event.target;
-    const statusId   = source === 'ersst-ts' ? 'et-corr-status' : 'ac-corr-status';
-    const monthId    = source === 'ersst-ts' ? 'et-corr-month'  : 'ac-corr-month';
+    const statusId   = source === 'ersst-ts' ? 'et-corr-status' : source === 'pca' ? 'pca-corr-status' : 'ac-corr-status';
+    const monthId    = source === 'ersst-ts' ? 'et-corr-month'  : source === 'pca' ? 'pca-corr-month'  : 'ac-corr-month';
     const statusEl   = document.getElementById(statusId);
     statusEl.className = 'status loading';
     statusEl.textContent = 'working...';
@@ -1991,6 +2119,11 @@
         lat1 = val('et-lat1'); lat2 = val('et-lat2');
         lon1 = val('et-lon1'); lon2 = val('et-lon2');
         label = `${monthName(val('et-month'))} ERSST TS`;
+      } else if (source === 'pca') {
+        series    = _pcaData.map(r => r.pc);
+        startYear = val('pca-start');
+        endYear   = val('pca-end');
+        label     = `EOF${val('pca-eof') || '1'} PC`;
       } else {
         series    = _aceData.map(r => r.ace);
         startYear = val('ac-start');

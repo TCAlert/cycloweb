@@ -744,12 +744,19 @@
         <label>PREDICTOR</label>
         <select id="sd-pred" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%">
           <option value="composite">composite</option>
-          <option value="SHRD">deep shear</option>
-          <option value="CSST">SST</option>
+          <option value="SHDC">deep shear (0–500 km)</option>
+          <option value="SHRS">850–500 hPa shear</option>
+          <option value="SHGC">generalized shear</option>
+          <option value="DSST">SST</option>
           <option value="HEAD">MPI headroom</option>
+          <option value="VMPI">MPI</option>
           <option value="RHMD">mid-level RH</option>
-          <option value="COHC">ocean heat content</option>
           <option value="RHLO">low-level RH</option>
+          <option value="NOHC">ocean heat content</option>
+          <option value="T200">200 hPa temperature</option>
+          <option value="D200">200 hPa divergence</option>
+          <option value="Z850">850 hPa vorticity</option>
+          <option value="PENV">env. pressure anomaly</option>
         </select>
       </div>
       <button class="submit" onclick="runShipsDiag()">run diag</button>

@@ -731,7 +731,7 @@
 
     <div class="param-panel" id="params-ships-lsdiag">
       <div class="param-title">SHIPS Diagnostics</div>
-      <div class="param-desc">Historical SHIPS lsdiag environmental diagnostics — Atlantic basin, 1982–2023.</div>
+      <div class="param-desc">Historical SHIPS lsdiag environmental diagnostics — AL/EP basins, 1982–2023.</div>
       <div class="field">
         <label>YEAR</label>
         <select id="sd-year" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"></select>
@@ -740,7 +740,20 @@
         <label>STORM</label>
         <select id="sd-storm" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%"></select>
       </div>
-      <button class="submit" onclick="runShipsDiag()">run</button>
+      <div class="field">
+        <label>PREDICTOR</label>
+        <select id="sd-pred" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%">
+          <option value="composite">composite</option>
+          <option value="SHRD">deep shear</option>
+          <option value="CSST">SST</option>
+          <option value="HEAD">MPI headroom</option>
+          <option value="RHMD">mid-level RH</option>
+          <option value="COHC">ocean heat content</option>
+          <option value="RHLO">low-level RH</option>
+        </select>
+      </div>
+      <button class="submit" onclick="runShipsDiag()">run diag</button>
+      <button class="submit" onclick="runShipsMap()" style="margin-left:.4rem">run map</button>
       <div class="status" id="sd-status"></div>
     </div>
 
@@ -2638,6 +2651,18 @@
     try {
       const storm = document.getElementById('sd-storm').value;
       const data  = await callAPI('/ships-lsdiag/plot', { storm });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('sd', btn);
+    } catch (e) { setError('sd', btn, e.message); }
+  }
+
+  async function runShipsMap() {
+    const btn = event.target;
+    setLoading('sd', btn);
+    try {
+      const storm = document.getElementById('sd-storm').value;
+      const pred  = document.getElementById('sd-pred').value;
+      const data  = await callAPI('/ships-lsdiag/map', { storm, pred });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('sd', btn);
     } catch (e) { setError('sd', btn, e.message); }

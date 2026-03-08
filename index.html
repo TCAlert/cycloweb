@@ -123,6 +123,47 @@
       border-bottom-color: #fff;
       background: #fff;
     }
+    .tab-dropdown { position: relative; display: inline-block; }
+    .tab-dropdown-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: #666;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      padding: .3rem .85rem;
+      margin-bottom: -1px;
+    }
+    .tab-dropdown-btn:hover { color: #111; }
+    .tab-dropdown-btn.child-active {
+      color: #111;
+      border-color: #aaa;
+      border-bottom-color: #fff;
+      background: #fff;
+    }
+    .tab-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 1px);
+      left: 0;
+      background: #fff;
+      border: 1px solid #aaa;
+      z-index: 200;
+      flex-direction: column;
+      min-width: 100%;
+    }
+    .tab-dropdown.open .tab-dropdown-menu { display: flex; }
+    .tab-dropdown-menu .tab-btn {
+      border: none;
+      border-bottom: 1px solid #eee;
+      margin: 0;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .tab-dropdown-menu .tab-btn:last-child { border-bottom: none; }
+    .tab-dropdown-menu .tab-btn:hover,
+    .tab-dropdown-menu .tab-btn.active { background: #f5f5f5; color: #111; }
 
     /* ── Image area ── */
     .image-area {
@@ -752,6 +793,38 @@
       <div class="status" id="er-status"></div>
     </div>
 
+    <div class="param-panel" id="params-20cr">
+      <div class="param-title">20CR Composite</div>
+      <div class="param-desc">20th Century Reanalysis v3 geopotential height anomaly composites with 30-year sliding climatology via PSL OPeNDAP.</div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="cr-month" type="text" placeholder="6" maxlength="2" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="cr-years" type="text" placeholder="1997,2015,2023" />
+        <span class="hint">comma-separated</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="cr-hgt" type="text" placeholder="500" class="optional" />
+        <span class="hint">pressure level in mb — optional</span>
+      </div>
+      <div class="field">
+        <label>TYPE</label>
+        <input id="cr-type" type="text" placeholder="anomalies" class="optional" />
+        <span class="hint">anomalies or std — optional</span>
+      </div>
+      <div class="field">
+        <label>STANDARDIZED</label>
+        <input id="cr-sd" type="text" placeholder="false" class="optional" />
+        <span class="hint">true or false — optional</span>
+      </div>
+      <button class="submit" onclick="runCr20()">run</button>
+      <div class="status" id="cr-status"></div>
+    </div>
+
     <div class="param-panel" id="params-ersst-ts">
       <div class="param-title">ERSST Timeseries</div>
       <div class="param-desc">ERSSTv5 regional SST anomaly timeseries via PSL OPeNDAP. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
@@ -1007,21 +1080,42 @@
   <!-- ── Right: tabs + image ── -->
   <div class="right-panel">
     <div class="tabs">
-      <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
-      <button class="tab-btn"        data-tab="mcfetch">MCFETCH</button>
-      <button class="tab-btn"        data-tab="radar">NEXRAD</button>
-      <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
-      <button class="tab-btn"        data-tab="hafs">HAFS</button>
-      <button class="tab-btn"        data-tab="hrrr">HRRR</button>
-      <button class="tab-btn"        data-tab="era5">ERA5</button>
-      <button class="tab-btn"        data-tab="ersst">ERSST</button>
-      <button class="tab-btn"        data-tab="ersst-ts">ERSST TS</button>
-      <button class="tab-btn"        data-tab="ace">ACE</button>
-      <button class="tab-btn"        data-tab="pca">PCA</button>
-      <button class="tab-btn"        data-tab="adeck">A-Deck</button>
-      <button class="tab-btn"        data-tab="fdeck">F-Deck</button>
-      <button class="tab-btn"        data-tab="shipsri">SHIPS RI</button>
-      <button class="tab-btn"        data-tab="metar">METAR</button>
+      <div class="tab-dropdown">
+        <button class="tab-dropdown-btn child-active">imagery ▾</button>
+        <div class="tab-dropdown-menu">
+          <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
+          <button class="tab-btn"        data-tab="mcfetch">MCFETCH</button>
+          <button class="tab-btn"        data-tab="radar">NEXRAD</button>
+          <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
+        </div>
+      </div>
+      <div class="tab-dropdown">
+        <button class="tab-dropdown-btn">models ▾</button>
+        <div class="tab-dropdown-menu">
+          <button class="tab-btn" data-tab="hafs">HAFS</button>
+          <button class="tab-btn" data-tab="hrrr">HRRR</button>
+        </div>
+      </div>
+      <div class="tab-dropdown">
+        <button class="tab-dropdown-btn">reanalysis ▾</button>
+        <div class="tab-dropdown-menu">
+          <button class="tab-btn" data-tab="era5">ERA5</button>
+          <button class="tab-btn" data-tab="ersst">ERSST</button>
+          <button class="tab-btn" data-tab="20cr">20CR</button>
+          <button class="tab-btn" data-tab="ersst-ts">ERSST TS</button>
+          <button class="tab-btn" data-tab="ace">ACE</button>
+          <button class="tab-btn" data-tab="pca">PCA</button>
+        </div>
+      </div>
+      <div class="tab-dropdown">
+        <button class="tab-dropdown-btn">ATCF ▾</button>
+        <div class="tab-dropdown-menu">
+          <button class="tab-btn" data-tab="adeck">A-Deck</button>
+          <button class="tab-btn" data-tab="fdeck">F-Deck</button>
+          <button class="tab-btn" data-tab="shipsri">SHIPS RI</button>
+        </div>
+      </div>
+      <button class="tab-btn" data-tab="metar">METAR</button>
     </div>
     <div class="image-area" id="view-output">
       <span class="image-placeholder" id="img-placeholder">output will appear here</span>
@@ -1470,6 +1564,40 @@
         </div>
       </div><!-- /ref-ersst -->
 
+      <!-- 20CR reference -->
+      <div class="ref-panel" id="ref-20cr">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PARAMETERS</h3>
+              <table class="ref-table">
+                <tr><td class="code">month</td><td class="note">Month number (1–12)</td></tr>
+                <tr><td class="code">years</td><td class="note">Comma-separated list of years to composite</td></tr>
+                <tr><td class="code">hgt</td><td class="note">Pressure level in mb (default 500)</td></tr>
+                <tr><td class="code">type</td><td class="note">anomalies (default) or std</td></tr>
+                <tr><td class="code">sd</td><td class="note">true = standardized by 30-yr std dev; false = global-mean anomaly</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>OUTPUT</h3>
+              <table class="ref-table">
+                <tr><td class="code">anomalies</td><td class="note">Composite mean height anomaly across all years</td></tr>
+                <tr><td class="code">std</td><td class="note">Inter-year standard deviation of the anomalies</td></tr>
+              </table>
+            </div>
+            <div class="ref-section">
+              <h3>NOTES</h3>
+              <table class="ref-table">
+                <tr><td class="code">source</td><td class="note">NOAA 20th Century Reanalysis v3 monthly mean via PSL OPeNDAP</td></tr>
+                <tr><td class="code">climo</td><td class="note">30-year sliding window (or 1806–1835 if year &lt; 1836)</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-20cr -->
+
       <!-- ERA5 reference -->
       <div class="ref-panel" id="ref-era5">
         <div class="ref-cols">
@@ -1656,10 +1784,15 @@
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
+      // Update dropdown parent active state
+      document.querySelectorAll('.tab-dropdown-btn').forEach(b => b.classList.remove('child-active'));
+      document.querySelectorAll('.tab-dropdown').forEach(d => d.classList.remove('open'));
+      const parentDropdown = btn.closest('.tab-dropdown');
+      if (parentDropdown) parentDropdown.querySelector('.tab-dropdown-btn').classList.add('child-active');
       // If coming from about, restore normal view
       const aboutArea = document.getElementById('about-area');
       const viewToggle = document.querySelector('.view-toggle');
@@ -1673,9 +1806,25 @@
     });
   });
 
+  // Dropdown tab groups
+  document.querySelectorAll('.tab-dropdown-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const dropdown = btn.closest('.tab-dropdown');
+      const isOpen = dropdown.classList.contains('open');
+      document.querySelectorAll('.tab-dropdown').forEach(d => d.classList.remove('open'));
+      if (!isOpen) dropdown.classList.add('open');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.tab-dropdown').forEach(d => d.classList.remove('open'));
+  });
+
   // Info button (bottom-left)
   document.getElementById('info-btn').addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-dropdown-btn').forEach(b => b.classList.remove('child-active'));
+    document.querySelectorAll('.tab-dropdown').forEach(d => d.classList.remove('open'));
     document.querySelectorAll('.param-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('params-about').classList.add('active');
     activeTab = 'about';
@@ -1920,6 +2069,22 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('er', btn);
     } catch (e) { setError('er', btn, e.message); }
+  }
+
+  async function runCr20() {
+    const btn = event.target;
+    setLoading('cr', btn);
+    try {
+      const data = await callAPI('/20cr', {
+        month: val('cr-month'),
+        years: val('cr-years').replace(/,*$/, ','),
+        hgt:   val('cr-hgt'),
+        type:  val('cr-type'),
+        sd:    val('cr-sd'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('cr', btn);
+    } catch (e) { setError('cr', btn, e.message); }
   }
 
   // ── ERSST Timeseries ─────────────────────────────────────────────────────

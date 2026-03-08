@@ -729,6 +729,20 @@
       <div class="status" id="sh-status"></div>
     </div>
 
+    <div class="param-panel" id="params-ships-lsdiag">
+      <div class="param-title">SHIPS Diagnostics</div>
+      <div class="param-desc">Historical SHIPS lsdiag environmental diagnostics — Atlantic basin, 1982–2023.</div>
+      <div class="field">
+        <label>YEAR</label>
+        <select id="sd-year" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"></select>
+      </div>
+      <div class="field">
+        <label>STORM</label>
+        <select id="sd-storm" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%"></select>
+      </div>
+      <button class="submit" onclick="runShipsDiag()">run</button>
+      <div class="status" id="sd-status"></div>
+    </div>
 
     <div class="param-panel" id="params-hrrr">
       <div class="param-title">HRRR</div>
@@ -1118,6 +1132,7 @@
           <button class="tab-btn" data-tab="adeck">A-Deck</button>
           <button class="tab-btn" data-tab="fdeck">F-Deck</button>
           <button class="tab-btn" data-tab="shipsri">SHIPS RI</button>
+          <button class="tab-btn" data-tab="ships-lsdiag">SHIPS Diag</button>
         </div>
       </div>
       <button class="tab-btn" data-tab="metar">METAR</button>
@@ -1460,6 +1475,35 @@
         </div>
       </div><!-- /ref-shipsri -->
 
+      <!-- SHIPS Lsdiag reference -->
+      <div class="ref-panel" id="ref-ships-lsdiag">
+        <div class="ref-cols">
+          <div>
+            <div class="ref-section">
+              <h3>PANELS</h3>
+              <table class="ref-table">
+                <tr><td class="code">Intensity vs MPI</td><td class="note">VMAX and MPI (kt) at T=0</td></tr>
+                <tr><td class="code">Wind Shear</td><td class="note">Deep (850–200 mb) and upper (500–200 mb) shear (kt); 10/20 kt reference lines</td></tr>
+                <tr><td class="code">SST</td><td class="note">Sea surface temperature (°C) at storm center; 26 °C reference line</td></tr>
+                <tr><td class="code">Humidity</td><td class="note">Relative humidity (%) at 850–700, 700–500, and 500–300 mb</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="ref-section">
+              <h3>SOURCE</h3>
+              <table class="ref-table">
+                <tr><td class="code">Data</td><td class="note">SHIPS lsdiag (RAMMB/CIRA) — AL basin, satellite era 1982–2023</td></tr>
+                <tr><td class="code">T=0</td><td class="note">All values are at the analysis time of each 6-hourly SHIPS initialization</td></tr>
+                <tr><td class="code">MPI</td><td class="note">VMPI — maximum potential intensity from thermodynamic environment</td></tr>
+                <tr><td class="code">Shear</td><td class="note">Raw value ÷ 10 = kt</td></tr>
+                <tr><td class="code">SST</td><td class="note">CSST — raw value ÷ 10 = °C</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /ref-ships-lsdiag -->
+
       <!-- HRRR reference -->
       <div class="ref-panel" id="ref-hrrr">
         <div class="ref-cols">
@@ -1788,8 +1832,9 @@
       btn.classList.add('active');
       document.getElementById('params-' + btn.dataset.tab).classList.add('active');
       activeTab = btn.dataset.tab;
+      if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -2552,6 +2597,50 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('sh', btn);
     } catch (e) { setError('sh', btn, e.message); }
+  }
+
+
+  // ── SHIPS Lsdiag ──
+
+  let _shipsStorms = null;
+  let _shipsLoading = false;
+
+  async function loadShipsStorms() {
+    if (_shipsStorms || _shipsLoading) return;
+    _shipsLoading = true;
+    document.getElementById('sd-status').textContent = 'Loading storm list…';
+    try {
+      const data = await callAPI('/ships-lsdiag/storms', {});
+      _shipsStorms = data.storms;
+      const years = [...new Set(_shipsStorms.map(s => s.year))].sort((a, b) => b - a);
+      const ySel = document.getElementById('sd-year');
+      ySel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+      ySel.addEventListener('change', populateShipsStormList);
+      populateShipsStormList();
+      document.getElementById('sd-status').textContent = '';
+    } catch (e) {
+      document.getElementById('sd-status').textContent = 'Failed to load storm list.';
+    }
+    _shipsLoading = false;
+  }
+
+  function populateShipsStormList() {
+    const year = parseInt(document.getElementById('sd-year').value);
+    const storms = (_shipsStorms || []).filter(s => s.year === year);
+    document.getElementById('sd-storm').innerHTML = storms.map(s =>
+      `<option value="${s.id}">${s.name} — peak ${s.peak} kt</option>`
+    ).join('');
+  }
+
+  async function runShipsDiag() {
+    const btn = event.target;
+    setLoading('sd', btn);
+    try {
+      const storm = document.getElementById('sd-storm').value;
+      const data  = await callAPI('/ships-lsdiag/plot', { storm });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('sd', btn);
+    } catch (e) { setError('sd', btn, e.message); }
   }
 
 

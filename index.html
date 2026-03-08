@@ -821,6 +821,11 @@
         <input id="cr-sd" type="text" placeholder="false" class="optional" />
         <span class="hint">true or false — optional</span>
       </div>
+      <div class="field">
+        <label>REGION</label>
+        <input id="cr-region" type="text" placeholder="NA" class="optional" />
+        <span class="hint">region key — optional</span>
+      </div>
       <button class="submit" onclick="runCr20()">run</button>
       <div class="status" id="cr-status"></div>
     </div>
@@ -2076,11 +2081,12 @@
     setLoading('cr', btn);
     try {
       const data = await callAPI('/20cr', {
-        month: val('cr-month'),
-        years: val('cr-years').replace(/,*$/, ','),
-        hgt:   val('cr-hgt'),
-        type:  val('cr-type'),
-        sd:    val('cr-sd'),
+        month:  val('cr-month'),
+        years:  val('cr-years').replace(/,*$/, ','),
+        hgt:    val('cr-hgt'),
+        type:   val('cr-type'),
+        sd:     val('cr-sd'),
+        region: val('cr-region'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('cr', btn);

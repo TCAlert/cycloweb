@@ -1050,8 +1050,13 @@
       </div>
       <div class="ace-output-wrap" id="ersst-ts-output-wrap">
         <div class="ace-ersst-btns">
-          <button class="ace-ersst-btn" onclick="ersstTsToErsst('top')">top 10 → ERSST</button>
-          <button class="ace-ersst-btn" onclick="ersstTsToErsst('bottom')">bottom 10 → ERSST</button>
+          <select id="et-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="sst">SST</option>
+            <option value="hgt">HGT</option>
+          </select>
+          <button class="ace-ersst-btn" onclick="ersstTsToComposite('top')">top 10 →</button>
+          <button class="ace-ersst-btn" onclick="ersstTsToComposite('bottom')">bottom 10 →</button>
+          <span class="status" id="et-composite-status" style="font-size:9px"></span>
           <input id="et-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <button class="ace-ersst-btn" onclick="runCorrInline('ersst-ts')">→ Corr</button>
           <span class="status" id="et-corr-status" style="font-size:9px"></span>
@@ -1072,8 +1077,13 @@
 
       <div class="ace-output-wrap" id="ace-output-wrap">
         <div class="ace-ersst-btns">
-          <button class="ace-ersst-btn" onclick="aceToErsst('top')">top 10 → ERSST</button>
-          <button class="ace-ersst-btn" onclick="aceToErsst('bottom')">bottom 10 → ERSST</button>
+          <select id="ac-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="sst">SST</option>
+            <option value="hgt">HGT</option>
+          </select>
+          <button class="ace-ersst-btn" onclick="aceToComposite('top')">top 10 →</button>
+          <button class="ace-ersst-btn" onclick="aceToComposite('bottom')">bottom 10 →</button>
+          <span class="status" id="ac-composite-status" style="font-size:9px"></span>
           <input id="ac-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <button class="ace-ersst-btn" onclick="runCorrInline('ace')">→ Corr</button>
           <span class="status" id="ac-corr-status" style="font-size:9px"></span>
@@ -1698,6 +1708,21 @@
 
   const API_BASE = 'https://tcalert-cycloweb.hf.space';
 
+  // GridSat-GOES satellite availability lookup (populated from CSV at startup)
+  const GOES_EAST = new Set(['goes08', 'goes12', 'goes13', 'goes14']);
+  const GOES_WEST = new Set(['goes09', 'goes10', 'goes11', 'goes15']);
+  const goesAvailability = new Map(); // 'YYYY-MM-DD' → ['goes08', ...]
+  fetch(`${API_BASE}/data/gridsat_goes_daily_satellite_availability.csv`)
+    .then(r => r.text())
+    .then(text => {
+      text.split('\n').slice(1).forEach(line => {
+        const parts = line.split(',');
+        if (parts.length < 6 || !parts[5]) return;
+        goesAvailability.set(parts[0], parts[5].trim().split(';'));
+      });
+    })
+    .catch(() => {});
+
   function val(id) { return document.getElementById(id).value.trim(); }
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1962,10 +1987,31 @@
     } catch (e) { setError('et', btn, e.message); }
   }
 
-  function ersstTsToErsst(which) {
+  function ersstTsToComposite(which) {
     const years = (which === 'top' ? _etTop10 : _etBottom10).join(',');
-    document.querySelector('.tab-btn[data-tab="ersst"]').click();
-    document.getElementById('er-years').value = years;
+    if (document.getElementById('et-composite-type').value === 'hgt') {
+      run20crInline(years, val('et-month'), 'et');
+    } else {
+      document.querySelector('.tab-btn[data-tab="ersst"]').click();
+      document.getElementById('er-years').value = years;
+    }
+  }
+
+  async function run20crInline(years, month, prefix) {
+    const statusEl = document.getElementById(`${prefix}-composite-status`);
+    if (!month) { statusEl.className = 'status error'; statusEl.textContent = 'enter a month'; return; }
+    statusEl.className = 'status loading';
+    statusEl.textContent = 'working...';
+    try {
+      const data = await callAPI('/20cr', { month, years });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      switchView('output');
+      statusEl.className = 'status done';
+      statusEl.textContent = 'done';
+    } catch (e) {
+      statusEl.className = 'status error';
+      statusEl.textContent = e.message;
+    }
   }
 
   // ── ACE ──────────────────────────────────────────────────────────────────
@@ -2102,10 +2148,14 @@
     } catch (e) { setError('pca', btn, e.message); }
   }
 
-  function aceToErsst(which) {
+  function aceToComposite(which) {
     const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
-    document.querySelector('.tab-btn[data-tab="ersst"]').click();
-    document.getElementById('er-years').value = years;
+    if (document.getElementById('ac-composite-type').value === 'hgt') {
+      run20crInline(years, document.getElementById('ac-corr-month').value.trim(), 'ac');
+    } else {
+      document.querySelector('.tab-btn[data-tab="ersst"]').click();
+      document.getElementById('er-years').value = years;
+    }
   }
 
   // ── Correlation ───────────────────────────────────────────────────────────
@@ -2262,14 +2312,30 @@
     } catch (e) { setError('fd', btn, e.message); }
   }
 
-  function guessSatellite(basin, year) {
-    const y = parseInt(year);
+  function guessSatellite(basin, dateKey) {
+    // dateKey: 'YYYY-MM-DD'
+    const year = parseInt(dateKey.slice(0, 4));
     const b = basin.toLowerCase();
+
+    // Pre-1994: GridSat-B1 (global)
+    if (year <= 1993) return 'b1';
+
+    // Modern GOES-R series preferred for 2017+ Atlantic
     if (b === 'al') {
-      if (y >= 1987 && y <= 1993) return 'b1';
-      if (y >= 2017 && y <= 2024) return '16';
-      if (y >= 2025)              return '19';
+      if (year >= 2025) return '19';
+      if (year >= 2017) return '16';
     }
+
+    // GridSat-GOES CSV lookup for pre-2017
+    const sats = goesAvailability.get(dateKey);
+    if (sats && sats.length) {
+      const wantEast = (b === 'al');
+      const preferred = wantEast ? GOES_EAST : GOES_WEST;
+      const fallback  = wantEast ? GOES_WEST : GOES_EAST;
+      const pick = sats.find(s => preferred.has(s)) || sats.find(s => fallback.has(s)) || sats[0];
+      return String(parseInt(pick.replace('goes', ''), 10)); // 'goes08' → '8'
+    }
+
     return '';
   }
 
@@ -2287,7 +2353,8 @@
     const lat    = (parseFloat(latStr.slice(0,-1)) / 100 * (latStr.slice(-1) === 'S' ? -1 : 1)).toFixed(1);
     const lonStr = parts[8];
     const lon    = (parseFloat(lonStr.slice(0,-1)) / 100 * (lonStr.slice(-1) === 'W' ? -1 : 1)).toFixed(1);
-    const sat    = guessSatellite(parts[0], year);
+    const dateKey = `${year}-${dt.slice(4,6)}-${dt.slice(6,8)}`;
+    const sat    = guessSatellite(parts[0], dateKey);
 
     document.querySelector('.tab-btn[data-tab="plot"]').click();
     switchView('output');

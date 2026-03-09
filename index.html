@@ -731,7 +731,17 @@
 
     <div class="param-panel" id="params-ships-lsdiag">
       <div class="param-title">SHIPS Diagnostics</div>
-      <div class="param-desc">Historical SHIPS lsdiag environmental diagnostics — AL/EP basins, 1982–2023.</div>
+      <div class="param-desc">Historical SHIPS lsdiag environmental diagnostics — AL/EP 1982–2023, WP/IO/SH 1990–2021.</div>
+      <div class="field">
+        <label>BASIN</label>
+        <select id="sd-basin" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff" onchange="reloadShipsStorms()">
+          <option value="AL">AL (Atlantic)</option>
+          <option value="EP">EP (East Pacific)</option>
+          <option value="WP">WP (West Pacific)</option>
+          <option value="IO">IO (Indian Ocean)</option>
+          <option value="SH">SH (Southern Hemisphere)</option>
+        </select>
+      </div>
       <div class="field">
         <label>YEAR</label>
         <select id="sd-year" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"></select>
@@ -1542,7 +1552,7 @@
             <div class="ref-section">
               <h3>SOURCE</h3>
               <table class="ref-table">
-                <tr><td class="code">Data</td><td class="note">SHIPS lsdiag (RAMMB/CIRA) — AL basin, satellite era 1982–2023</td></tr>
+                <tr><td class="code">Data</td><td class="note">SHIPS lsdiag (RAMMB/CIRA) — AL/EP 1982–2023, WP/IO/SH 1990–2021</td></tr>
                 <tr><td class="code">T=0</td><td class="note">All values are at the analysis time of each 6-hourly SHIPS initialization</td></tr>
                 <tr><td class="code">MPI</td><td class="note">VMPI — maximum potential intensity from thermodynamic environment</td></tr>
                 <tr><td class="code">Shear</td><td class="note">Raw value ÷ 10 = kt</td></tr>
@@ -2651,20 +2661,26 @@
 
   // ── SHIPS Lsdiag ──
 
-  let _shipsStorms = null;
+  const _shipsCache = {};   // basin → storms array
   let _shipsLoading = false;
 
-  async function loadShipsStorms() {
-    if (_shipsStorms || _shipsLoading) return;
+  function reloadShipsStorms() {
+    loadShipsStorms(true);
+  }
+
+  async function loadShipsStorms(force = false) {
+    const basin = document.getElementById('sd-basin').value;
+    if (!force && _shipsCache[basin]) { populateShipsStormList(); return; }
+    if (_shipsLoading) return;
     _shipsLoading = true;
     document.getElementById('sd-status').textContent = 'Loading storm list…';
     try {
-      const data = await callAPI('/ships-lsdiag/storms', {});
-      _shipsStorms = data.storms;
-      const years = [...new Set(_shipsStorms.map(s => s.year))].sort((a, b) => b - a);
+      const data = await callAPI('/ships-lsdiag/storms', { basin });
+      _shipsCache[basin] = data.storms;
+      const years = [...new Set(data.storms.map(s => s.year))].sort((a, b) => b - a);
       const ySel = document.getElementById('sd-year');
       ySel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
-      ySel.addEventListener('change', populateShipsStormList);
+      ySel.onchange = populateShipsStormList;
       populateShipsStormList();
       document.getElementById('sd-status').textContent = '';
     } catch (e) {
@@ -2674,8 +2690,9 @@
   }
 
   function populateShipsStormList() {
-    const year = parseInt(document.getElementById('sd-year').value);
-    const storms = (_shipsStorms || []).filter(s => s.year === year);
+    const basin = document.getElementById('sd-basin').value;
+    const year  = parseInt(document.getElementById('sd-year').value);
+    const storms = (_shipsCache[basin] || []).filter(s => s.year === year);
     document.getElementById('sd-storm').innerHTML = storms.map(s =>
       `<option value="${s.id}">${s.name} — peak ${s.peak} kt</option>`
     ).join('');

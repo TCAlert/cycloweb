@@ -641,6 +641,36 @@
       <div class="status" id="hafs-status"></div>
     </div>
 
+    <div class="param-panel" id="params-gdmi">
+      <div class="param-title">DeepMind</div>
+      <div class="param-desc">Google DeepMind FNV3 1000-member ensemble TC track density map.</div>
+      <div class="field">
+        <label>INIT DATE</label>
+        <input id="gdmi-init" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>INIT HOUR (UTC)</label>
+        <input id="gdmi-init-hr" type="text" placeholder="12" maxlength="2" />
+        <span class="hint">00 06 12 18</span>
+      </div>
+      <div class="field">
+        <label>VALID DATE</label>
+        <input id="gdmi-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>VALID HOUR (UTC)</label>
+        <input id="gdmi-date-hr" type="text" placeholder="12" maxlength="2" />
+        <span class="hint">00 06 12 18</span>
+      </div>
+      <div class="field">
+        <label>REGION</label>
+        <input id="gdmi-region" type="text" placeholder="WATL" class="optional" />
+        <span class="hint">optional</span>
+      </div>
+      <button class="submit" onclick="runGdmi()">run</button>
+      <div class="status" id="gdmi-status"></div>
+    </div>
+
     <div class="param-panel" id="params-tcprimed">
       <div class="param-title">TC-PRIMED</div>
       <div class="param-desc">Passive microwave + IR two-panel from the TC-PRIMED archive.</div>
@@ -1180,6 +1210,7 @@
         <div class="tab-dropdown-menu">
           <button class="tab-btn" data-tab="hafs">HAFS</button>
           <button class="tab-btn" data-tab="hrrr">HRRR</button>
+          <button class="tab-btn" data-tab="gdmi">DeepMind</button>
         </div>
       </div>
       <div class="tab-dropdown">
@@ -2115,6 +2146,22 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('hafs', btn);
     } catch (e) { setError('hafs', btn, e.message); }
+  }
+
+  async function runGdmi() {
+    const btn = event.target;
+    setLoading('gdmi', btn);
+    try {
+      const data = await callAPI('/gdmi', {
+        init:    val('gdmi-init'),
+        init_hr: val('gdmi-init-hr'),
+        date:    val('gdmi-date'),
+        date_hr: val('gdmi-date-hr'),
+        region:  val('gdmi-region'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('gdmi', btn);
+    } catch (e) { setError('gdmi', btn, e.message); }
   }
 
   async function runTcprimed() {

@@ -71,6 +71,9 @@
     .field input:focus { outline: 1px solid #111; }
     .field input.optional { border-style: dashed; }
     .field .hint { font-size: 11px; color: #888; }
+    .stepper { display: flex; gap: .3rem; margin-top: .1rem; }
+    .step-btn { flex: 1; background: #fff; border: 1px solid #999; color: #111; cursor: pointer; font-family: inherit; font-size: 11px; padding: .2rem .3rem; }
+    .step-btn:hover { background: #f0f0f0; }
 
     button.submit {
       background: #111;
@@ -651,7 +654,10 @@
       <div class="field">
         <label>INIT HOUR (UTC)</label>
         <input id="gdmi-init-hr" type="text" placeholder="12" maxlength="2" />
-        <span class="hint">00 06 12 18</span>
+        <div class="stepper">
+          <button class="step-btn" onclick="stepGdmiTime('init',-1)">&#9664; 6h</button>
+          <button class="step-btn" onclick="stepGdmiTime('init',+1)">6h &#9654;</button>
+        </div>
       </div>
       <div class="field">
         <label>VALID DATE</label>
@@ -660,7 +666,10 @@
       <div class="field">
         <label>VALID HOUR (UTC)</label>
         <input id="gdmi-date-hr" type="text" placeholder="12" maxlength="2" />
-        <span class="hint">00 06 12 18</span>
+        <div class="stepper">
+          <button class="step-btn" onclick="stepGdmiTime('valid',-1)">&#9664; 6h</button>
+          <button class="step-btn" onclick="stepGdmiTime('valid',+1)">6h &#9654;</button>
+        </div>
       </div>
       <div class="field">
         <label>REGION</label>
@@ -2146,6 +2155,24 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('hafs', btn);
     } catch (e) { setError('hafs', btn, e.message); }
+  }
+
+  function stepGdmiTime(prefix, delta) {
+    const dateId = prefix === 'init' ? 'gdmi-init' : 'gdmi-date';
+    const hrId   = prefix === 'init' ? 'gdmi-init-hr' : 'gdmi-date-hr';
+    let dateStr = document.getElementById(dateId).value.trim();
+    let hr = parseInt(document.getElementById(hrId).value.trim() || '12', 10);
+    if (!dateStr) {
+      const now = new Date();
+      dateStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}/${now.getFullYear()}`;
+    }
+    const [m, d, y] = dateStr.split('/').map(Number);
+    const dt = new Date(y, m - 1, d);
+    hr += delta * 6;
+    if (hr >= 24) { hr -= 24; dt.setDate(dt.getDate() + 1); }
+    if (hr < 0)   { hr += 24; dt.setDate(dt.getDate() - 1); }
+    document.getElementById(dateId).value = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`;
+    document.getElementById(hrId).value = String(hr).padStart(2, '0');
   }
 
   async function runGdmi() {

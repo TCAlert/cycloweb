@@ -90,6 +90,8 @@
     button.submit:hover:not(:disabled) { background: #333; }
     #sd-anomaly.active { background: #111 !important; color: #fff !important; }
     #sd-anomaly.active:hover { background: #333 !important; }
+    #gdmi-cum.active { background: #111 !important; color: #fff !important; }
+    #gdmi-cum.active:hover { background: #333 !important; }
 
     .status { font-size: 10px; min-height: .9rem; }
     .status.loading { color: #555; }
@@ -676,6 +678,11 @@
         <input id="gdmi-region" type="text" placeholder="NATL" class="optional" />
         <span class="hint">optional</span>
       </div>
+      <button id="gdmi-cum" type="button" onclick="this.classList.toggle('active')"
+              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                     cursor:pointer;align-self:flex-start"
+              >CUM</button>
       <button class="submit" onclick="runGdmi()">run</button>
       <div class="status" id="gdmi-status"></div>
     </div>
@@ -2179,12 +2186,14 @@
     const btn = event.target;
     setLoading('gdmi', btn);
     try {
+      const cum = document.getElementById('gdmi-cum').classList.contains('active');
       const data = await callAPI('/gdmi', {
         init:    val('gdmi-init'),
         init_hr: val('gdmi-init-hr'),
         date:    val('gdmi-date'),
         date_hr: val('gdmi-date-hr'),
         region:  val('gdmi-region'),
+        cum,
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('gdmi', btn);

@@ -94,6 +94,8 @@
     #gdmi-cum.active:hover { background: #333 !important; }
     #em-anomaly.active { background: #111 !important; color: #fff !important; }
     #em-anomaly.active:hover { background: #333 !important; }
+    #em-contour.active { background: #111 !important; color: #fff !important; }
+    #em-contour.active:hover { background: #333 !important; }
     .cbar-advanced { display: none; }
     .cbar-advanced.open { display: contents; }
 
@@ -1182,6 +1184,11 @@
           <label>CBAR STEP</label>
           <input id="em-steps" type="text" placeholder="5" class="optional" />
         </div>
+        <button id="em-contour" type="button" onclick="this.classList.toggle('active')"
+                style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer;align-self:flex-start"
+                >CONTOUR</button>
       </div>
       <button class="submit" onclick="runEra5m()">run</button>
       <div class="status" id="em-status"></div>
@@ -2357,17 +2364,19 @@
     const btn = event.target;
     setLoading('em', btn);
     try {
-      const emAnom = document.getElementById('em-anomaly').classList.contains('active');
+      const emAnom    = document.getElementById('em-anomaly').classList.contains('active');
+      const emContour = document.getElementById('em-contour').classList.contains('active');
       const data = await callAPI('/era5m', {
-        var:    val('em-var'),
-        month:  val('em-month'),
-        years:  val('em-years'),
-        region: val('em-region'),
-        type:   emAnom ? 'anomaly' : 'mean',
-        level:  val('em-level'),
-        mini:   val('em-mini'),
-        maxi:   val('em-maxi'),
-        steps:  val('em-steps'),
+        var:     val('em-var'),
+        month:   val('em-month'),
+        years:   val('em-years'),
+        region:  val('em-region'),
+        type:    emAnom ? 'anomaly' : 'mean',
+        level:   val('em-level'),
+        mini:    val('em-mini'),
+        maxi:    val('em-maxi'),
+        steps:   val('em-steps'),
+        contour: emContour ? 'true' : 'false',
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('em', btn);

@@ -1123,6 +1123,58 @@
       <div class="status" id="e5-status"></div>
     </div>
 
+    <div class="param-panel" id="params-era5m">
+      <div class="param-title">ERA5 Monthly Composite</div>
+      <div class="param-desc">0.25° ERA5 monthly mean or anomaly composites via CDS API. Fixed 1991–2020 climatology.</div>
+      <div class="field">
+        <label>VARIABLE</label>
+        <input id="em-var" type="text" placeholder="shear" />
+        <span class="hint">shear &nbsp; uwnd &nbsp; hgt &nbsp; rh &nbsp; thetae</span>
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="em-month" type="text" placeholder="8" maxlength="2" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="em-years" type="text" placeholder="1997,2005,2010" />
+        <span class="hint">comma-separated</span>
+      </div>
+      <div class="field">
+        <label>REGION</label>
+        <input id="em-region" type="text" placeholder="natl" />
+        <span class="hint">natl &nbsp; tatl &nbsp; etc.</span>
+      </div>
+      <div class="field">
+        <label>TYPE</label>
+        <input id="em-type" type="text" placeholder="mean" class="optional" />
+        <span class="hint">mean or anomaly — optional</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="em-level" type="text" placeholder="850" class="optional" />
+        <span class="hint">hPa — optional</span>
+      </div>
+      <div class="field">
+        <label>CBAR MIN</label>
+        <input id="em-mini" type="text" placeholder="-30" class="optional" />
+        <span class="hint">custom colorbar min — optional</span>
+      </div>
+      <div class="field">
+        <label>CBAR MAX</label>
+        <input id="em-maxi" type="text" placeholder="30" class="optional" />
+        <span class="hint">custom colorbar max — optional</span>
+      </div>
+      <div class="field">
+        <label>CBAR STEP</label>
+        <input id="em-steps" type="text" placeholder="5" class="optional" />
+        <span class="hint">custom colorbar step — optional</span>
+      </div>
+      <button class="submit" onclick="runEra5m()">run</button>
+      <div class="status" id="em-status"></div>
+    </div>
+
     <div class="param-panel" id="params-metar">
       <div class="param-title">METAR Time Series</div>
       <div class="param-desc">96-hour METAR time series for temperature, pressure, or wind from any ICAO station.</div>
@@ -1233,6 +1285,7 @@
         <button class="tab-dropdown-btn">reanalysis ▾</button>
         <div class="tab-dropdown-menu">
           <button class="tab-btn" data-tab="era5">ERA5</button>
+          <button class="tab-btn" data-tab="era5m">ERA5 Monthly</button>
           <button class="tab-btn" data-tab="ersst">ERSST</button>
           <button class="tab-btn" data-tab="20cr">20CR</button>
           <button class="tab-btn" data-tab="ersst-ts">ERSST TS</button>
@@ -1948,7 +2001,7 @@
       activeTab = btn.dataset.tab;
       if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -2286,6 +2339,26 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('cr', btn);
     } catch (e) { setError('cr', btn, e.message); }
+  }
+
+  async function runEra5m() {
+    const btn = event.target;
+    setLoading('em', btn);
+    try {
+      const data = await callAPI('/era5m', {
+        var:    val('em-var'),
+        month:  val('em-month'),
+        years:  val('em-years'),
+        region: val('em-region'),
+        type:   val('em-type'),
+        level:  val('em-level'),
+        mini:   val('em-mini'),
+        maxi:   val('em-maxi'),
+        steps:  val('em-steps'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setDone('em', btn);
+    } catch (e) { setError('em', btn, e.message); }
   }
 
   // ── ERSST Timeseries ─────────────────────────────────────────────────────

@@ -92,6 +92,10 @@
     #sd-anomaly.active:hover { background: #333 !important; }
     #gdmi-cum.active { background: #111 !important; color: #fff !important; }
     #gdmi-cum.active:hover { background: #333 !important; }
+    #em-anomaly.active { background: #111 !important; color: #fff !important; }
+    #em-anomaly.active:hover { background: #333 !important; }
+    .cbar-advanced { display: none; }
+    .cbar-advanced.open { display: contents; }
 
     .status { font-size: 10px; min-height: .9rem; }
     .status.loading { color: #555; }
@@ -1128,8 +1132,13 @@
       <div class="param-desc">0.25° ERA5 monthly mean or anomaly composites via CDS API. Fixed 1991–2020 climatology.</div>
       <div class="field">
         <label>VARIABLE</label>
-        <input id="em-var" type="text" placeholder="shear" />
-        <span class="hint">shear &nbsp; uwnd &nbsp; hgt &nbsp; rh &nbsp; thetae</span>
+        <select id="em-var" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff">
+          <option value="shear">shear</option>
+          <option value="uwnd">uwnd</option>
+          <option value="hgt">hgt</option>
+          <option value="rh">rh</option>
+          <option value="thetae">thetae</option>
+        </select>
       </div>
       <div class="field">
         <label>MONTH</label>
@@ -1147,29 +1156,32 @@
         <span class="hint">natl &nbsp; tatl &nbsp; etc.</span>
       </div>
       <div class="field">
-        <label>TYPE</label>
-        <input id="em-type" type="text" placeholder="mean" class="optional" />
-        <span class="hint">mean or anomaly — optional</span>
-      </div>
-      <div class="field">
         <label>LEVEL</label>
         <input id="em-level" type="text" placeholder="850" class="optional" />
         <span class="hint">hPa — optional</span>
       </div>
-      <div class="field">
-        <label>CBAR MIN</label>
-        <input id="em-mini" type="text" placeholder="-30" class="optional" />
-        <span class="hint">custom colorbar min — optional</span>
-      </div>
-      <div class="field">
-        <label>CBAR MAX</label>
-        <input id="em-maxi" type="text" placeholder="30" class="optional" />
-        <span class="hint">custom colorbar max — optional</span>
-      </div>
-      <div class="field">
-        <label>CBAR STEP</label>
-        <input id="em-steps" type="text" placeholder="5" class="optional" />
-        <span class="hint">custom colorbar step — optional</span>
+      <button id="em-anomaly" type="button" onclick="this.classList.toggle('active')"
+              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                     cursor:pointer;align-self:flex-start"
+              >ANOMALY</button>
+      <button type="button" onclick="document.getElementById('em-cbar').classList.toggle('open');this.textContent=document.getElementById('em-cbar').classList.contains('open')?'▲ colorbar':'▼ colorbar'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ colorbar</button>
+      <div id="em-cbar" class="cbar-advanced">
+        <div class="field">
+          <label>CBAR MIN</label>
+          <input id="em-mini" type="text" placeholder="-30" class="optional" />
+        </div>
+        <div class="field">
+          <label>CBAR MAX</label>
+          <input id="em-maxi" type="text" placeholder="30" class="optional" />
+        </div>
+        <div class="field">
+          <label>CBAR STEP</label>
+          <input id="em-steps" type="text" placeholder="5" class="optional" />
+        </div>
       </div>
       <button class="submit" onclick="runEra5m()">run</button>
       <div class="status" id="em-status"></div>
@@ -2345,12 +2357,13 @@
     const btn = event.target;
     setLoading('em', btn);
     try {
+      const emAnom = document.getElementById('em-anomaly').classList.contains('active');
       const data = await callAPI('/era5m', {
         var:    val('em-var'),
         month:  val('em-month'),
         years:  val('em-years'),
         region: val('em-region'),
-        type:   val('em-type'),
+        type:   emAnom ? 'anomaly' : 'mean',
         level:  val('em-level'),
         mini:   val('em-mini'),
         maxi:   val('em-maxi'),

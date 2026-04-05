@@ -1346,8 +1346,8 @@
       <div class="fdeck-output-wrap" id="gdmi-output-wrap">
         <table class="fdeck-output">
           <thead>
-            <tr><td colspan="7" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
-            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td></td></tr>
+            <tr><td colspan="8" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
+            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td>Members</td><td></td></tr>
           </thead>
           <tbody id="gdmi-storms-body"></tbody>
         </table>
@@ -2291,13 +2291,13 @@
       if (data.storms && data.storms.length) {
         document.getElementById('gdmi-output-header').textContent = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization`;
         document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
-          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
         ).join('');
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
       setDone('gdmi', btn);
       const st = document.getElementById('gdmi-status');
-      st.innerHTML += ' <span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'table\')">— storm list available in table tab</span>';
+      st.innerHTML = 'Done.<br><span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'table\')">Storm list available in table tab.</span>';
     } catch (e) { setError('gdmi', btn, e.message); }
   }
 

@@ -284,6 +284,15 @@
     }
     .ref-table td.note { color: #666; }
     .ref-table tr:nth-child(even) td { background: #f8f8f8; }
+    .ref-btn {
+      font-size: 10px;
+      padding: .1rem .4rem;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+    }
+    .ref-btn:hover { background: #f0f0f0; }
 
     .tag-list {
       display: flex;
@@ -1134,7 +1143,7 @@
       <div class="param-desc">0.25° ERA5 monthly mean or anomaly composites via CDS API. Fixed 1991–2020 climatology.</div>
       <div class="field">
         <label>VARIABLE</label>
-        <select id="em-var" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff">
+        <select id="em-var" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
           <option value="shear">shear</option>
           <option value="uwnd">uwnd</option>
           <option value="hgt">hgt</option>
@@ -1184,7 +1193,7 @@
           <label>CBAR STEP</label>
           <input id="em-steps" type="text" placeholder="5" class="optional" />
         </div>
-        <button id="em-contour" type="button" onclick="this.classList.toggle('active')"
+        <button id="em-contour" type="button" class="active" onclick="this.classList.toggle('active')"
                 style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                        cursor:pointer;align-self:flex-start"
@@ -1957,6 +1966,17 @@
         </div>
       </div><!-- /ref-radar -->
 
+      <div class="ref-panel" id="ref-gdmi">
+        <div class="ref-cols">
+          <div class="ref-section">
+            <h3>STORMS IN INITIALIZATION</h3>
+            <table class="ref-table" id="gdmi-storms-table">
+              <tr><td class="note" colspan="3">Run a map to populate storm list.</td></tr>
+            </table>
+          </div>
+        </div>
+      </div><!-- /ref-gdmi -->
+
     </div><!-- /view-ref -->
 
     <!-- ── About area ── -->
@@ -2020,7 +2040,7 @@
       activeTab = btn.dataset.tab;
       if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { gdmi: 'ref-gdmi', hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -2268,8 +2288,31 @@
         cum,
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      if (data.storms && data.storms.length) {
+        document.getElementById('gdmi-storms-table').innerHTML = data.storms.map(s =>
+          `<tr><td class="code">${s[0]}</td><td class="note">${s[1].slice(0,10)}</td><td class="note">${s[2].slice(0,10)}</td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+        ).join('');
+      }
       setDone('gdmi', btn);
+      const st = document.getElementById('gdmi-status');
+      st.innerHTML += ' <span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'ref\')">↗ ref</span>';
     } catch (e) { setError('gdmi', btn, e.message); }
+  }
+
+  async function runGdmiSize(storm) {
+    const st = document.getElementById('gdmi-status');
+    st.textContent = 'loading...';
+    try {
+      const data = await callAPI('/gdmi/size', {
+        init:    val('gdmi-init'),
+        init_hr: val('gdmi-init-hr'),
+        date:    val('gdmi-date'),
+        date_hr: val('gdmi-date-hr'),
+        storm,
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      st.textContent = 'done.';
+    } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 
   async function runTcprimed() {

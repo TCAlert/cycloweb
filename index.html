@@ -1343,6 +1343,12 @@
 
     <!-- ── Table area ── -->
     <div class="table-area" id="view-table">
+      <div class="fdeck-output-wrap" id="gdmi-output-wrap">
+        <table class="fdeck-output">
+          <thead><tr><td colspan="4" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr></thead>
+          <tbody id="gdmi-storms-body"></tbody>
+        </table>
+      </div>
       <div class="fdeck-output-wrap" id="fdeck-output-wrap">
         <table class="fdeck-output">
           <thead><tr><td colspan="99" id="fdeck-output-header"></td></tr></thead>
@@ -1966,16 +1972,6 @@
         </div>
       </div><!-- /ref-radar -->
 
-      <div class="ref-panel" id="ref-gdmi">
-        <div class="ref-cols">
-          <div class="ref-section">
-            <h3>STORMS IN INITIALIZATION</h3>
-            <table class="ref-table" id="gdmi-storms-table">
-              <tr><td class="note" colspan="3">Run a map to populate storm list.</td></tr>
-            </table>
-          </div>
-        </div>
-      </div><!-- /ref-gdmi -->
 
     </div><!-- /view-ref -->
 
@@ -2040,7 +2036,7 @@
       activeTab = btn.dataset.tab;
       if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { gdmi: 'ref-gdmi', hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -2277,6 +2273,7 @@
   async function runGdmi() {
     const btn = event.target;
     setLoading('gdmi', btn);
+    document.getElementById('gdmi-output-wrap').classList.remove('visible');
     try {
       const cum = document.getElementById('gdmi-cum').classList.contains('active');
       const data = await callAPI('/gdmi', {
@@ -2289,13 +2286,15 @@
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.storms && data.storms.length) {
-        document.getElementById('gdmi-storms-table').innerHTML = data.storms.map(s =>
-          `<tr><td class="code">${s[0]}</td><td class="note">${s[1].slice(0,10)}</td><td class="note">${s[2].slice(0,10)}</td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+        document.getElementById('gdmi-output-header').textContent = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization`;
+        document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
+          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
         ).join('');
+        document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
       setDone('gdmi', btn);
       const st = document.getElementById('gdmi-status');
-      st.innerHTML += ' <span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'ref\')">↗ ref</span>';
+      st.innerHTML += ' <span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'table\')">— storm list available in table tab</span>';
     } catch (e) { setError('gdmi', btn, e.message); }
   }
 

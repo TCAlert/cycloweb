@@ -693,7 +693,7 @@
         <input id="gdmi-region" type="text" placeholder="NATL" class="optional" />
         <span class="hint">optional</span>
       </div>
-      <button id="gdmi-cum" type="button" onclick="this.classList.toggle('active')"
+      <button id="gdmi-cum" type="button" class="active" onclick="this.classList.toggle('active')"
               style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                      cursor:pointer;align-self:flex-start"
@@ -2445,6 +2445,13 @@
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       st.textContent = 'done.';
+      if (data.table && data.table.length) {
+        const tbody = document.getElementById('series-table-body');
+        tbody.innerHTML = data.table.map(r =>
+          `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`
+        ).join('');
+        document.getElementById('series-table-wrap').style.display = '';
+      }
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 

@@ -1433,6 +1433,23 @@
         <a id="link-img"  href="#" target="_blank">open image</a>
         <a id="link-extra" href="#" target="_blank" style="display:none"></a>
       </div>
+      <div id="series-cvar-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">COLORBAR:</label>
+        <select id="series-cvar-sel" class="ref-btn" onchange="rerunSeriesWithCvar(this)">
+          <option value="vmax">vmax</option>
+          <option value="slp">slp</option>
+          <option value="rmw">rmw</option>
+          <option value="lat">lat</option>
+        </select>
+      </div>
+      <div id="series-table-wrap" class="adeck-table-wrap" style="display:none;margin-top:.5rem">
+        <table class="adeck-table">
+          <thead>
+            <tr><th>FHOUR</th><th>LAT</th><th>LON</th><th>VMAX (kt)</th></tr>
+          </thead>
+          <tbody id="series-table-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ── Table area ── -->
@@ -2247,6 +2264,8 @@
   function showImage(imgUrl, extraUrl, extraLabel) {
     switchView('output');
     document.getElementById('img-placeholder').style.display = 'none';
+    document.getElementById('series-cvar-wrap').style.display = 'none';
+    document.getElementById('series-table-wrap').style.display = 'none';
     const img = document.getElementById('result-img');
     img.src = imgUrl;
     img.classList.add('visible');
@@ -2385,7 +2404,7 @@
       if (data.storms && data.storms.length) {
         document.getElementById('gdmi-output-header').textContent = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization`;
         document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
-          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
         ).join('');
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
@@ -2430,23 +2449,44 @@
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 
-  async function runGdmiSeries(storm, sel) {
-    const varName = sel.value;
-    sel.value = '';
+  let _seriesStorm = '', _seriesVar = '';
+
+  async function runGdmiSeries(storm, sel, cvar) {
+    const varName = sel ? sel.value : _seriesVar;
+    if (sel) sel.value = '';
+    _seriesStorm = storm;
+    _seriesVar = varName;
     const st = document.getElementById('gdmi-status');
     st.textContent = 'loading...';
+    const params = {
+      init:    val('gdmi-init'),
+      init_hr: val('gdmi-init-hr'),
+      date:    val('gdmi-date'),
+      date_hr: val('gdmi-date-hr'),
+      storm,
+      var:     varName,
+    };
+    if (cvar) params.cvar = cvar;
     try {
-      const data = await callAPI('/gdmi/series', {
-        init:    val('gdmi-init'),
-        init_hr: val('gdmi-init-hr'),
-        date:    val('gdmi-date'),
-        date_hr: val('gdmi-date-hr'),
-        storm,
-        var:     varName,
-      });
+      const data = await callAPI('/gdmi/series', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       st.textContent = 'done.';
+      const wrap = document.getElementById('series-cvar-wrap');
+      const csel = document.getElementById('series-cvar-sel');
+      csel.value = cvar || varName;
+      wrap.style.display = '';
+      if (data.table && data.table.length) {
+        const tbody = document.getElementById('series-table-body');
+        tbody.innerHTML = data.table.map(r =>
+          `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`
+        ).join('');
+        document.getElementById('series-table-wrap').style.display = '';
+      }
     } catch (e) { st.textContent = 'error: ' + e.message; }
+  }
+
+  async function rerunSeriesWithCvar(sel) {
+    await runGdmiSeries(_seriesStorm, null, sel.value);
   }
 
   async function runTcprimed() {

@@ -700,6 +700,14 @@
               >CUM</button>
       <button class="submit" onclick="runGdmi()">run</button>
       <div class="status" id="gdmi-status"></div>
+      <div id="series-table-wrap" style="display:none;margin-top:.5rem;max-height:300px;overflow-y:auto">
+        <table class="adeck-table" style="width:100%">
+          <thead>
+            <tr><th>FHOUR</th><th>LAT</th><th>LON</th><th>VMAX (kt)</th></tr>
+          </thead>
+          <tbody id="series-table-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="param-panel" id="params-tcprimed">
@@ -1441,14 +1449,6 @@
           <option value="rmw">rmw</option>
           <option value="lat">lat</option>
         </select>
-      </div>
-      <div id="series-table-wrap" class="adeck-table-wrap" style="display:none;margin-top:.5rem">
-        <table class="adeck-table">
-          <thead>
-            <tr><th>FHOUR</th><th>LAT</th><th>LON</th><th>VMAX (kt)</th></tr>
-          </thead>
-          <tbody id="series-table-body"></tbody>
-        </table>
       </div>
     </div>
 
@@ -2265,7 +2265,6 @@
     switchView('output');
     document.getElementById('img-placeholder').style.display = 'none';
     document.getElementById('series-cvar-wrap').style.display = 'none';
-    document.getElementById('series-table-wrap').style.display = 'none';
     const img = document.getElementById('result-img');
     img.src = imgUrl;
     img.classList.add('visible');

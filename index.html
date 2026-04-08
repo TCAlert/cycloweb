@@ -2210,6 +2210,12 @@
   const viewTable  = document.getElementById('view-table');
   const viewRef    = document.getElementById('view-ref');
 
+  function hideAllTables() {
+    ['gdmi-output-wrap','fdeck-output-wrap','adeck-table-wrap','ersst-ts-output-wrap','ace-output-wrap','pca-output-wrap'].forEach(id => {
+      document.getElementById(id).classList.remove('visible');
+    });
+  }
+
   function switchView(name) {
     document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
     document.querySelector(`.view-btn[data-view="${name}"]`).classList.add('active');
@@ -2405,6 +2411,7 @@
         document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
           `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
         ).join('');
+        hideAllTables();
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
       setDone('gdmi', btn);
@@ -2528,6 +2535,7 @@
         tbody.innerHTML = data.table.map(r =>
           `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`
         ).join('');
+        hideAllTables();
         document.getElementById('adeck-table-wrap').classList.add('visible');
       }
       setDone('ad', btn);
@@ -2668,6 +2676,7 @@
       document.getElementById('et-sort-year').textContent = '';
       document.getElementById('et-sort-anom').textContent = '';
       renderErsstTsTable();
+      hideAllTables();
       document.getElementById('ersst-ts-output-wrap').classList.add('visible');
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       switchView('table');
@@ -2766,6 +2775,7 @@
       document.getElementById('ace-sort-year').textContent = '';
       document.getElementById('ace-sort-ace').textContent  = '';
       renderAceTable();
+      hideAllTables();
       document.getElementById('ace-output-wrap').classList.add('visible');
       switchView('table');
       setDone('ac', btn);
@@ -2830,6 +2840,7 @@
       document.getElementById('pca-sort-year').textContent = '';
       document.getElementById('pca-sort-pc').textContent   = '';
       renderPcaTable();
+      hideAllTables();
       document.getElementById('pca-output-wrap').classList.add('visible');
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('pca', btn);
@@ -2993,6 +3004,7 @@
           const cells = line.split(',').map(c => `<td>${c.trim()}</td>`).join('');
           return `<tr><td><button class="fix-plot-btn" onclick="plotFromFix(${i})">plot</button></td>${cells}</tr>`;
         }).join('');
+        hideAllTables();
         document.getElementById('fdeck-output-wrap').classList.add('visible');
         switchView('table');
       }

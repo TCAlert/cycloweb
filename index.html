@@ -1176,10 +1176,10 @@
                      padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                      cursor:pointer;align-self:flex-start"
               >ANOMALY</button>
-      <button type="button" onclick="document.getElementById('em-cbar').classList.toggle('open');this.textContent=document.getElementById('em-cbar').classList.contains('open')?'▲ colorbar':'▼ colorbar'"
+      <button type="button" onclick="document.getElementById('em-cbar').classList.toggle('open');this.textContent=document.getElementById('em-cbar').classList.contains('open')?'▲ advanced':'▼ advanced'"
               style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
-                     cursor:pointer;align-self:flex-start">▼ colorbar</button>
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
       <div id="em-cbar" class="cbar-advanced">
         <div class="field">
           <label>CBAR MIN</label>
@@ -1198,6 +1198,23 @@
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                        cursor:pointer;align-self:flex-start"
                 >CONTOUR</button>
+        <div style="margin-top:.4rem;font-size:9px;letter-spacing:.04em;color:#555;font-weight:bold">CUSTOM EXTENT (overrides region)</div>
+        <div class="field">
+          <label>WEST LON</label>
+          <input id="em-lon1" type="text" placeholder="-100" class="optional" />
+        </div>
+        <div class="field">
+          <label>EAST LON</label>
+          <input id="em-lon2" type="text" placeholder="-10" class="optional" />
+        </div>
+        <div class="field">
+          <label>SOUTH LAT</label>
+          <input id="em-lat1" type="text" placeholder="0" class="optional" />
+        </div>
+        <div class="field">
+          <label>NORTH LAT</label>
+          <input id="em-lat2" type="text" placeholder="40" class="optional" />
+        </div>
       </div>
       <button class="submit" onclick="runEra5m()">run</button>
       <div class="status" id="em-status"></div>
@@ -2460,6 +2477,10 @@
         maxi:    val('em-maxi'),
         steps:   val('em-steps'),
         contour: emContour ? 'true' : 'false',
+        lon1:    val('em-lon1'),
+        lon2:    val('em-lon2'),
+        lat1:    val('em-lat1'),
+        lat2:    val('em-lat2'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('em', btn);

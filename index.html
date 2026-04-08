@@ -1163,8 +1163,83 @@
       </div>
       <div class="field">
         <label>REGION</label>
-        <input id="em-region" type="text" placeholder="natl" />
-        <span class="hint">natl &nbsp; tatl &nbsp; etc.</span>
+        <select id="em-region" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
+          <option value="custom">custom (set extent below)</option>
+          <optgroup label="Atlantic">
+            <option value="natl" selected>NATL</option>
+            <option value="tatl">TATL</option>
+            <option value="catl">CATL</option>
+            <option value="watl">WATL</option>
+            <option value="eatl">EATL</option>
+            <option value="fnatl">FNATL</option>
+            <option value="nwatl">NWATL</option>
+            <option value="neatl">NEATL</option>
+            <option value="swatl">SWATL</option>
+            <option value="seatl">SEATL</option>
+            <option value="mdr">MDR</option>
+            <option value="cv">CV</option>
+            <option value="sub">SUB</option>
+            <option value="satl1">SATL1</option>
+            <option value="satl2">SATL2</option>
+            <option value="satl3">SATL3</option>
+          </optgroup>
+          <optgroup label="Caribbean / Gulf">
+            <option value="car">CAR</option>
+            <option value="gom">GOM</option>
+            <option value="cag">CAG</option>
+            <option value="ca">CA</option>
+            <option value="ga">GA</option>
+            <option value="la">LA</option>
+          </optgroup>
+          <optgroup label="East Pacific">
+            <option value="epac">EPAC</option>
+            <option value="epac2">EPAC2</option>
+            <option value="cpac">CPAC</option>
+            <option value="hi">HI</option>
+            <option value="tpac">TPAC</option>
+          </optgroup>
+          <optgroup label="West Pacific">
+            <option value="wpac">WPAC</option>
+            <option value="wpac2">WPAC2</option>
+            <option value="wmdr">WMDR</option>
+            <option value="nmdr">NMDR</option>
+            <option value="phil">PHIL</option>
+            <option value="nwpac">NWPAC</option>
+            <option value="guam">GUAM</option>
+            <option value="scs">SCS</option>
+          </optgroup>
+          <optgroup label="Indian Ocean">
+            <option value="io">IO</option>
+            <option value="swio">SWIO</option>
+            <option value="seio">SEIO</option>
+            <option value="bob">BOB</option>
+            <option value="arb">ARB</option>
+          </optgroup>
+          <optgroup label="Pacific Basin">
+            <option value="npac">NPAC</option>
+            <option value="npac2">NPAC2</option>
+            <option value="enso">ENSO</option>
+            <option value="enso2">ENSO2</option>
+            <option value="eq">EQ</option>
+          </optgroup>
+          <optgroup label="Southern Hemisphere">
+            <option value="aus">AUS</option>
+            <option value="spac">SPAC</option>
+            <option value="scpac">SCPAC</option>
+            <option value="sepac">SEPAC</option>
+            <option value="sams">SAMS</option>
+            <option value="samn">SAMN</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option value="us">US</option>
+            <option value="nam">NAM</option>
+            <option value="wus">WUS</option>
+            <option value="eus">EUS</option>
+            <option value="nafr">NAFR</option>
+            <option value="medi">MEDI</option>
+            <option value="global">GLOBAL</option>
+          </optgroup>
+        </select>
       </div>
       <div class="field">
         <label>LEVEL</label>
@@ -1202,6 +1277,7 @@
         <div class="field">
           <label>WEST LON</label>
           <input id="em-lon1" type="text" placeholder="-100" class="optional" />
+          <span class="hint">negative = west of prime meridian</span>
         </div>
         <div class="field">
           <label>EAST LON</label>
@@ -1210,6 +1286,7 @@
         <div class="field">
           <label>SOUTH LAT</label>
           <input id="em-lat1" type="text" placeholder="0" class="optional" />
+          <span class="hint">negative = southern hemisphere</span>
         </div>
         <div class="field">
           <label>NORTH LAT</label>

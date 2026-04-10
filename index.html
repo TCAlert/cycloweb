@@ -92,6 +92,8 @@
     #sd-anomaly.active:hover { background: #333 !important; }
     #gdmi-cum.active { background: #111 !important; color: #fff !important; }
     #gdmi-cum.active:hover { background: #333 !important; }
+    #track-gridded-btn.active { background: #111 !important; color: #fff !important; }
+    #track-gridded-btn.active:hover { background: #333 !important; }
     #em-anomaly.active { background: #111 !important; color: #fff !important; }
     #em-anomaly.active:hover { background: #333 !important; }
     #em-contour.active { background: #111 !important; color: #fff !important; }
@@ -1451,6 +1453,12 @@
           <option value="lon">lon</option>
         </select>
       </div>
+      <div id="track-gridded-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <button id="track-gridded-btn" type="button" onclick="rerunTrackWithGridded(this)"
+                style="font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer">GRIDDED</button>
+      </div>
     </div>
 
     <!-- ── Table area ── -->
@@ -2272,6 +2280,7 @@
     switchView('output');
     document.getElementById('img-placeholder').style.display = 'none';
     document.getElementById('series-cvar-wrap').style.display = 'none';
+    document.getElementById('track-gridded-wrap').style.display = 'none';
     const img = document.getElementById('result-img');
     img.src = imgUrl;
     img.classList.add('visible');
@@ -2437,9 +2446,14 @@
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 
-  async function runGdmiTrack(storm, sel) {
-    const varName = sel.value;
-    sel.value = '';
+  let _trackStorm = '', _trackVar = '', _trackGridded = false;
+
+  async function runGdmiTrack(storm, sel, gridded) {
+    const varName = sel ? sel.value : _trackVar;
+    if (sel) sel.value = '';
+    _trackStorm = storm;
+    _trackVar = varName;
+    _trackGridded = !!gridded;
     const st = document.getElementById('gdmi-status');
     st.textContent = 'loading...';
     try {
@@ -2450,9 +2464,14 @@
         date_hr: val('gdmi-date-hr'),
         storm,
         var:     varName,
+        gridded: _trackGridded ? 'true' : 'false',
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       st.textContent = 'done.';
+      const gwrap = document.getElementById('track-gridded-wrap');
+      const gbtn = document.getElementById('track-gridded-btn');
+      gbtn.classList.toggle('active', _trackGridded);
+      gwrap.style.display = '';
       if (data.table && data.table.length) {
         const tbody = document.getElementById('series-table-body');
         tbody.innerHTML = data.table.map(r =>
@@ -2501,6 +2520,10 @@
 
   async function rerunSeriesWithCvar(sel) {
     await runGdmiSeries(_seriesStorm, null, sel.value);
+  }
+
+  async function rerunTrackWithGridded(btn) {
+    await runGdmiTrack(_trackStorm, null, !_trackGridded);
   }
 
   async function runTcprimed() {

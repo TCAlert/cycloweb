@@ -1466,8 +1466,8 @@
       <div class="fdeck-output-wrap" id="gdmi-output-wrap">
         <table class="fdeck-output">
           <thead>
-            <tr><td colspan="10" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
-            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td>Members</td><td></td><td></td><td></td></tr>
+            <tr><td colspan="11" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
+            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td>Members</td><td></td><td></td><td></td><td></td></tr>
           </thead>
           <tbody id="gdmi-storms-body"></tbody>
         </table>
@@ -2419,7 +2419,7 @@
       if (data.storms && data.storms.length) {
         document.getElementById('gdmi-output-header').textContent = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization`;
         document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
-          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td><td><select class="ref-btn" onchange="runGdmiProbs('${s[0]}', this)"><option value="">probs</option><option value="vmax">vmax</option><option value="ri">ri</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
         ).join('');
         hideAllTables();
         document.getElementById('gdmi-output-wrap').classList.add('visible');
@@ -2515,6 +2515,26 @@
         ).join('');
         document.getElementById('series-table-wrap').style.display = '';
       }
+    } catch (e) { st.textContent = 'error: ' + e.message; }
+  }
+
+  async function runGdmiProbs(storm, sel) {
+    const varName = sel ? sel.value : '';
+    if (sel) sel.value = '';
+    if (!varName) return;
+    const st = document.getElementById('gdmi-status');
+    st.textContent = 'loading...';
+    try {
+      const data = await callAPI('/gdmi/probs', {
+        init:    val('gdmi-init'),
+        init_hr: val('gdmi-init-hr'),
+        date:    val('gdmi-date'),
+        date_hr: val('gdmi-date-hr'),
+        storm,
+        var:     varName,
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      st.textContent = 'done.';
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 

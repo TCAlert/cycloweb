@@ -1459,6 +1459,12 @@
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                        cursor:pointer">GRIDDED</button>
       </div>
+      <div id="probs-continuous-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <button id="probs-continuous-btn" type="button" onclick="rerunProbsWithContinuous(this)"
+                style="font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer">CONTINUOUS</button>
+      </div>
     </div>
 
     <!-- ── Table area ── -->
@@ -2518,24 +2524,38 @@
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }
 
-  async function runGdmiProbs(storm, sel) {
-    const varName = sel ? sel.value : '';
+  let _probsStorm = '', _probsVar = '', _probsContinuous = false;
+
+  async function runGdmiProbs(storm, sel, continuous) {
+    const varName = sel ? sel.value : _probsVar;
     if (sel) sel.value = '';
     if (!varName) return;
+    _probsStorm = storm;
+    _probsVar = varName;
+    _probsContinuous = !!continuous;
     const st = document.getElementById('gdmi-status');
     st.textContent = 'loading...';
     try {
       const data = await callAPI('/gdmi/probs', {
-        init:    val('gdmi-init'),
-        init_hr: val('gdmi-init-hr'),
-        date:    val('gdmi-date'),
-        date_hr: val('gdmi-date-hr'),
+        init:       val('gdmi-init'),
+        init_hr:    val('gdmi-init-hr'),
+        date:       val('gdmi-date'),
+        date_hr:    val('gdmi-date-hr'),
         storm,
-        var:     varName,
+        var:        varName,
+        continuous: _probsContinuous ? 'true' : 'false',
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       st.textContent = 'done.';
+      const wrap = document.getElementById('probs-continuous-wrap');
+      const btn = document.getElementById('probs-continuous-btn');
+      btn.classList.toggle('active', _probsContinuous);
+      wrap.style.display = '';
     } catch (e) { st.textContent = 'error: ' + e.message; }
+  }
+
+  async function rerunProbsWithContinuous(btn) {
+    await runGdmiProbs(_probsStorm, null, !_probsContinuous);
   }
 
   async function rerunSeriesWithCvar(sel) {

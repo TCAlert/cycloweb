@@ -575,6 +575,51 @@
       <div class="status" id="plot-status"></div>
     </div>
 
+    <div class="param-panel" id="params-satanalysis">
+      <div class="param-title">IR Analysis</div>
+      <div class="param-desc">Satellite IR diagnostic and structure analysis.</div>
+      <div class="field">
+        <label>SATELLITE</label>
+        <input id="sa-satellite" type="text" placeholder="19" />
+        <span class="hint">16 18 19</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="sa-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>TIME (UTC)</label>
+        <input id="sa-time" type="text" placeholder="1800" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT</label>
+        <input id="sa-lat" type="text" placeholder="25.0" />
+      </div>
+      <div class="field">
+        <label>LON</label>
+        <input id="sa-lon" type="text" placeholder="-80.0" />
+      </div>
+      <div class="field">
+        <label>BAND</label>
+        <input id="sa-band" type="text" placeholder="13" />
+        <span class="hint">channel number</span>
+      </div>
+      <div class="field">
+        <label>COLORMAP</label>
+        <input id="sa-cmap" type="text" placeholder="irg" class="optional" />
+        <span class="hint">optional</span>
+      </div>
+      <div class="field">
+        <label>MODE</label>
+        <select id="sa-mode">
+          <option value="diag">Diagnostic</option>
+          <option value="structure">Structure</option>
+        </select>
+      </div>
+      <button class="submit" onclick="runSatAnalysis()">run</button>
+      <div class="status" id="satanalysis-status"></div>
+    </div>
+
     <div class="param-panel" id="params-mcfetch">
       <div class="param-title">McIDAS</div>
       <div class="param-desc">Older geostationary archive via SSEC. Covers GOES 1–15, GMS, MTSAT, early Himawari.</div>
@@ -1400,6 +1445,7 @@
         <button class="tab-dropdown-btn child-active">imagery ▾</button>
         <div class="tab-dropdown-menu">
           <button class="tab-btn active" data-tab="plot">GOES / Himawari</button>
+          <button class="tab-btn"        data-tab="satanalysis">Analysis</button>
           <button class="tab-btn"        data-tab="mcfetch">MCFETCH</button>
           <button class="tab-btn"        data-tab="radar">NEXRAD</button>
           <button class="tab-btn"        data-tab="tcprimed">TC-PRIMED</button>
@@ -2349,6 +2395,26 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), API_BASE + data.nc_url, 'download .nc');
       setDone('plot', btn);
     } catch (e) { setError('plot', btn, e.message); }
+  }
+
+  async function runSatAnalysis() {
+    const btn = event.target;
+    setLoading('satanalysis', btn);
+    try {
+      const mode = document.getElementById('sa-mode').value;
+      const endpoint = mode === 'structure' ? '/irstructure' : '/satdiag';
+      const data = await callAPI(endpoint, {
+        satellite: val('sa-satellite'),
+        date:      val('sa-date'),
+        time:      val('sa-time'),
+        lat:       val('sa-lat'),
+        lon:       val('sa-lon'),
+        band:      val('sa-band'),
+        cmap:      val('sa-cmap'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now());
+      setDone('satanalysis', btn);
+    } catch (e) { setError('satanalysis', btn, e.message); }
   }
 
   async function runMcfetch() {

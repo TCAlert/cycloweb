@@ -610,6 +610,11 @@
         <span class="hint">optional</span>
       </div>
       <div class="field">
+        <label>MESO</label>
+        <input id="sa-meso" type="text" placeholder="1 or 2" class="optional" />
+        <span class="hint">omit for full disk</span>
+      </div>
+      <div class="field">
         <label>MODE</label>
         <select id="sa-mode">
           <option value="diag">Diagnostic</option>
@@ -2411,6 +2416,7 @@
         lon:       val('sa-lon'),
         band:      val('sa-band'),
         cmap:      val('sa-cmap'),
+        meso:      val('sa-meso'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now());
       setDone('satanalysis', btn);

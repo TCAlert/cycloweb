@@ -584,10 +584,6 @@
         <span class="hint">IBTrACS name</span>
       </div>
       <div class="field">
-        <label>YEAR</label>
-        <input id="sa-year" type="text" placeholder="2017" maxlength="4" />
-      </div>
-      <div class="field">
         <label>DATE</label>
         <input id="sa-date" type="text" placeholder="MM/DD/YYYY" />
       </div>
@@ -596,21 +592,8 @@
         <input id="sa-time" type="text" placeholder="1800" maxlength="4" />
       </div>
       <div class="field">
-        <label>SATELLITE</label>
-        <input id="sa-satellite" type="text" placeholder="19" />
-        <span class="hint">16 18 19</span>
-      </div>
-      <div class="field">
         <label>BAND</label>
         <select id="sa-band" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%">
-          <optgroup label="Visible">
-            <option value="1">1 — Blue (0.47 µm)</option>
-            <option value="2">2 — Red (0.64 µm)</option>
-            <option value="3">3 — Veggie (0.86 µm)</option>
-            <option value="4">4 — Cirrus (1.37 µm)</option>
-            <option value="5">5 — Snow/Ice (1.6 µm)</option>
-            <option value="6">6 — Cloud (2.2 µm)</option>
-          </optgroup>
           <optgroup label="Water Vapor">
             <option value="8">8 — Upper WV (6.2 µm)</option>
             <option value="9">9 — Mid WV (6.9 µm)</option>
@@ -618,6 +601,7 @@
           </optgroup>
           <optgroup label="Infrared">
             <option value="11">11 — Cloud-Top (8.4 µm)</option>
+            <option value="12">12 — Ozone (9.6 µm)</option>
             <option value="13" selected>13 — Clean IR (10.3 µm)</option>
             <option value="14">14 — IR Longwave (11.2 µm)</option>
             <option value="15">15 — Dirty IR (12.3 µm)</option>
@@ -645,6 +629,11 @@
         <div class="field">
           <label>LON</label>
           <input id="sa-lon" type="text" placeholder="-80.0" class="optional" />
+        </div>
+        <div class="field">
+          <label>SATELLITE</label>
+          <input id="sa-satellite" type="text" placeholder="auto" class="optional" />
+          <span class="hint">auto: 19 (2025+), 18 (2022+), 16</span>
         </div>
         <div class="field">
           <label>COLORMAP</label>
@@ -2444,6 +2433,8 @@
     try {
       const mode = document.getElementById('sa-mode').value;
       const endpoint = mode === 'structure' ? '/irstructure' : '/satdiag';
+      const dateParts = val('sa-date').split('/');
+      const year = dateParts.length === 3 ? dateParts[2] : '';
       const params = {
         date:      val('sa-date'),
         time:      val('sa-time'),
@@ -2458,7 +2449,7 @@
         params.lon = lon;
       } else {
         params.storm = val('sa-storm');
-        params.year  = val('sa-year');
+        params.year = year;
       }
       const data = await callAPI(endpoint, params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now());

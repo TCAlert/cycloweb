@@ -1093,11 +1093,14 @@
 
     <div class="param-panel" id="params-ace">
       <div class="param-title">ACE Timeseries</div>
-      <div class="param-desc">Accumulated Cyclone Energy by year from HURDAT2. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
+      <div class="param-desc">Accumulated Cyclone Energy by year. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
       <div class="field">
         <label>BASIN</label>
-        <input id="ac-basin" type="text" placeholder="AL" maxlength="2" />
-        <span class="hint">AL EP</span>
+        <select id="ac-basin">
+          <option value="AL" selected>Atlantic (AL)</option>
+          <option value="EP">East Pacific (EP)</option>
+          <option value="WP">West Pacific (WP)</option>
+        </select>
       </div>
       <div class="field">
         <label>START YEAR</label>

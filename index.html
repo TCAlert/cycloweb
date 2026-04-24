@@ -611,9 +611,24 @@
       </div>
       <div class="field">
         <label>MODE</label>
-        <select id="sa-mode" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff">
+        <select id="sa-mode" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"
+                onchange="document.getElementById('sa-delta-wrap').style.display = this.value === 'framediff' ? '' : 'none'">
           <option value="diag">Diagnostic</option>
           <option value="structure">Structure</option>
+          <option value="framediff">Frame Difference</option>
+        </select>
+      </div>
+      <div class="field" id="sa-delta-wrap" style="display:none">
+        <label>DELTA</label>
+        <select id="sa-delta" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff">
+          <option value="1">1 min</option>
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="30">30 min</option>
+          <option value="60">1 hr</option>
+          <option value="180" selected>3 hr</option>
+          <option value="360">6 hr</option>
+          <option value="720">12 hr</option>
         </select>
       </div>
       <button type="button" onclick="document.getElementById('sa-adv').classList.toggle('open');this.textContent=document.getElementById('sa-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
@@ -2435,7 +2450,9 @@
     setLoading('satanalysis', btn);
     try {
       const mode = document.getElementById('sa-mode').value;
-      const endpoint = mode === 'structure' ? '/irstructure' : '/satdiag';
+      const endpoint = mode === 'structure' ? '/irstructure'
+                     : mode === 'framediff' ? '/framediff'
+                     : '/satdiag';
       const dateParts = val('sa-date').split('/');
       const year = dateParts.length === 3 ? dateParts[2] : '';
       const params = {
@@ -2446,6 +2463,9 @@
         cmap:      val('sa-cmap'),
         meso:      val('sa-meso'),
       };
+      if (mode === 'framediff') {
+        params.delta = document.getElementById('sa-delta').value;
+      }
       const lat = val('sa-lat'), lon = val('sa-lon');
       if (lat && lon) {
         params.lat = lat;

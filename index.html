@@ -612,7 +612,7 @@
       <div class="field">
         <label>MODE</label>
         <select id="sa-mode" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"
-                onchange="document.getElementById('sa-delta-wrap').style.display = this.value === 'framediff' ? '' : 'none'">
+                onchange="var fd=this.value==='framediff';document.getElementById('sa-delta-wrap').style.display=fd?'':'none';document.getElementById('sa-filtration-wrap').style.display=fd?'':'none'">
           <option value="diag">Diagnostic</option>
           <option value="structure">Structure</option>
           <option value="framediff">Frame Difference</option>
@@ -659,6 +659,10 @@
           <label>MESO</label>
           <input id="sa-meso" type="text" placeholder="1 or 2" class="optional" />
           <span class="hint">omit for full disk</span>
+        </div>
+        <div class="field" id="sa-filtration-wrap" style="display:none;flex-direction:row;align-items:center;gap:.4rem">
+          <input id="sa-filtration" type="checkbox" checked style="margin:0" />
+          <label for="sa-filtration" style="margin:0;cursor:pointer">Wavenumber filter contours</label>
         </div>
       </div>
       <button class="submit" onclick="runSatAnalysis()">run</button>
@@ -2465,6 +2469,7 @@
       };
       if (mode === 'framediff') {
         params.delta = document.getElementById('sa-delta').value;
+        params.filtration = document.getElementById('sa-filtration').checked ? '1' : '0';
       }
       const lat = val('sa-lat'), lon = val('sa-lon');
       if (lat && lon) {

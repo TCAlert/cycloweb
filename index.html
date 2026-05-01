@@ -1622,13 +1622,24 @@
 
     <!-- ── Table area ── -->
     <div class="table-area" id="view-table">
-      <div class="fdeck-output-wrap" id="icoads-output-wrap">
-        <table class="fdeck-output">
-          <thead>
-            <tr><th>STATION</th><th>LAT</th><th>LON</th><th>WIND (kt)</th><th>DIR (°)</th><th>SLP (hPa)</th><th>TEMP (°C)</th><th>DEWP (°C)</th></tr>
-          </thead>
-          <tbody id="icoads-obs-body"></tbody>
-        </table>
+      <div class="ace-output-wrap" id="icoads-output-wrap">
+        <div class="ace-table-wrap">
+          <table class="ace-table">
+            <thead>
+              <tr>
+                <th onclick="sortIcoads('station')">STATION <span id="ic-sort-station"></span></th>
+                <th onclick="sortIcoads('latitude')">LAT <span id="ic-sort-latitude"></span></th>
+                <th onclick="sortIcoads('longitude')">LON <span id="ic-sort-longitude"></span></th>
+                <th onclick="sortIcoads('windspd_kt')">WIND (kt) <span id="ic-sort-windspd_kt"> ▼</span></th>
+                <th onclick="sortIcoads('winddir')">DIR (°) <span id="ic-sort-winddir"></span></th>
+                <th onclick="sortIcoads('slp_hpa')">SLP (hPa) <span id="ic-sort-slp_hpa"></span></th>
+                <th onclick="sortIcoads('temp_c')">TEMP (°C) <span id="ic-sort-temp_c"></span></th>
+                <th onclick="sortIcoads('dewp_c')">DEWP (°C) <span id="ic-sort-dewp_c"></span></th>
+              </tr>
+            </thead>
+            <tbody id="icoads-obs-body"></tbody>
+          </table>
+        </div>
       </div>
       <div class="fdeck-output-wrap" id="gdmi-output-wrap">
         <table class="fdeck-output">
@@ -3214,6 +3225,40 @@
     } catch (e) { setError('e5', btn, e.message); }
   }
 
+  let _icData = [];
+  let _icSortCol = 'windspd_kt';
+  let _icSortAsc = false;
+  const _icCols = ['station','latitude','longitude','windspd_kt','winddir','slp_hpa','temp_c','dewp_c'];
+
+  function renderIcoadsTable() {
+    const fmt = v => (v == null || (typeof v === 'number' && isNaN(v))) ? '—' : (typeof v === 'number' ? v.toFixed(1) : v);
+    const rows = [..._icData].sort((a, b) => {
+      const av = a[_icSortCol], bv = b[_icSortCol];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const v = _icSortAsc ? 1 : -1;
+      return av < bv ? -v : av > bv ? v : 0;
+    });
+    document.getElementById('icoads-obs-body').innerHTML = rows.map(r =>
+      `<tr><td>${r.station || '—'}</td><td>${fmt(r.latitude)}</td><td>${fmt(r.longitude)}</td><td>${fmt(r.windspd_kt)}</td><td>${fmt(r.winddir)}</td><td>${fmt(r.slp_hpa)}</td><td>${fmt(r.temp_c)}</td><td>${fmt(r.dewp_c)}</td></tr>`
+    ).join('');
+  }
+
+  function sortIcoads(col) {
+    if (_icSortCol === col) {
+      _icSortAsc = !_icSortAsc;
+    } else {
+      _icSortCol = col;
+      _icSortAsc = col === 'station';
+    }
+    _icCols.forEach(c => {
+      document.getElementById('ic-sort-' + c).textContent =
+        c === _icSortCol ? (_icSortAsc ? ' ▲' : ' ▼') : '';
+    });
+    renderIcoadsTable();
+  }
+
   async function runIcoads() {
     const btn = event.target;
     setLoading('ic', btn);
@@ -3232,10 +3277,13 @@
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.obs && data.obs.length) {
-        const fmt = v => (v == null || isNaN(v)) ? '—' : (+v).toFixed(1);
-        document.getElementById('icoads-obs-body').innerHTML = data.obs.map(r =>
-          `<tr><td>${r.station || '—'}</td><td>${fmt(r.latitude)}</td><td>${fmt(r.longitude)}</td><td>${fmt(r.windspd_kt)}</td><td>${fmt(r.winddir)}</td><td>${fmt(r.slp_hpa)}</td><td>${fmt(r.temp_c)}</td><td>${fmt(r.dewp_c)}</td></tr>`
-        ).join('');
+        _icData = data.obs;
+        _icSortCol = 'windspd_kt';
+        _icSortAsc = false;
+        _icCols.forEach(c => {
+          document.getElementById('ic-sort-' + c).textContent = c === 'windspd_kt' ? ' ▼' : '';
+        });
+        renderIcoadsTable();
         document.getElementById('icoads-output-wrap').classList.add('visible');
         switchView('table');
       }

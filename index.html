@@ -612,7 +612,7 @@
       <div class="field">
         <label>MODE</label>
         <select id="sa-mode" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff"
-                onchange="var fd=this.value==='framediff';document.getElementById('sa-delta-wrap').style.display=fd?'':'none';document.getElementById('sa-filtration-wrap').style.display=fd?'':'none'">
+                onchange="var fd=this.value==='framediff';document.getElementById('sa-delta-wrap').style.display=fd?'':'none';document.getElementById('sa-filtration').style.display=fd?'':'none'">
           <option value="diag">Diagnostic</option>
           <option value="structure">Structure</option>
           <option value="framediff">Frame Difference</option>
@@ -660,10 +660,11 @@
           <input id="sa-meso" type="text" placeholder="1 or 2" class="optional" />
           <span class="hint">omit for full disk</span>
         </div>
-        <div class="field" id="sa-filtration-wrap" style="display:none;flex-direction:row;align-items:center;gap:.4rem">
-          <input id="sa-filtration" type="checkbox" checked style="margin:0" />
-          <label for="sa-filtration" style="margin:0;cursor:pointer">Wavenumber filter contours</label>
-        </div>
+        <button id="sa-filtration" type="button" class="active" onclick="this.classList.toggle('active')"
+                style="display:none;margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer;align-self:flex-start"
+                >FILTER</button>
       </div>
       <button class="submit" onclick="runSatAnalysis()">run</button>
       <div class="status" id="satanalysis-status"></div>
@@ -1245,6 +1246,59 @@
       <div class="status" id="e5-status"></div>
     </div>
 
+    <div class="param-panel" id="params-icoads">
+      <div class="param-title">ICOADS Ship Observations</div>
+      <div class="param-desc">ICOADS marine surface observations overlaid on ERA5 background fields via CDS API.</div>
+      <div class="field">
+        <label>STORM NAME</label>
+        <input id="ic-storm" type="text" placeholder="Dorian" class="optional" />
+        <span class="hint">HURDAT2 name — overrides lat/lon if provided</span>
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="ic-month" type="text" placeholder="9" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>DAY</label>
+        <input id="ic-day" type="text" placeholder="3" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>YEAR</label>
+        <input id="ic-year" type="text" placeholder="2019" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>HOUR (UTC)</label>
+        <input id="ic-hour" type="text" placeholder="12" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>PLOTTYPE</label>
+        <input id="ic-plottype" type="text" placeholder="wind" />
+        <span class="hint">wind temp tempadv thetae divergence mslp</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="ic-level" type="text" placeholder="1000" class="optional" />
+        <span class="hint">hPa — required for pressure-level plots</span>
+      </div>
+      <button type="button" onclick="document.getElementById('ic-adv').classList.toggle('open');this.textContent=document.getElementById('ic-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="ic-adv" class="cbar-advanced">
+        <div class="field">
+          <label>LAT OVERRIDE</label>
+          <input id="ic-lat" type="text" placeholder="25.0" class="optional" />
+          <span class="hint">overrides storm name lookup</span>
+        </div>
+        <div class="field">
+          <label>LON OVERRIDE</label>
+          <input id="ic-lon" type="text" placeholder="-80.0" class="optional" />
+        </div>
+      </div>
+      <button class="submit" onclick="runIcoads()">run</button>
+      <div class="status" id="ic-status"></div>
+    </div>
+
     <div class="param-panel" id="params-era5m">
       <div class="param-title">ERA5 Monthly Composite</div>
       <div class="param-desc">0.25° ERA5 monthly mean or anomaly composites via CDS API. Fixed 1991–2020 climatology.</div>
@@ -1521,6 +1575,7 @@
           <button class="tab-btn" data-tab="ersst-ts">ERSST TS</button>
           <button class="tab-btn" data-tab="ace">ACE</button>
           <button class="tab-btn" data-tab="pca">PCA</button>
+          <button class="tab-btn" data-tab="icoads">ICOADS</button>
         </div>
       </div>
       <div class="tab-dropdown">
@@ -1567,6 +1622,14 @@
 
     <!-- ── Table area ── -->
     <div class="table-area" id="view-table">
+      <div class="fdeck-output-wrap" id="icoads-output-wrap">
+        <table class="fdeck-output">
+          <thead>
+            <tr><th>STATION</th><th>LAT</th><th>LON</th><th>WIND (kt)</th><th>DIR (°)</th><th>SLP (hPa)</th><th>TEMP (°C)</th><th>DEWP (°C)</th></tr>
+          </thead>
+          <tbody id="icoads-obs-body"></tbody>
+        </table>
+      </div>
       <div class="fdeck-output-wrap" id="gdmi-output-wrap">
         <table class="fdeck-output">
           <thead>
@@ -2324,7 +2387,7 @@
   const viewRef    = document.getElementById('view-ref');
 
   function hideAllTables() {
-    ['gdmi-output-wrap','fdeck-output-wrap','adeck-table-wrap','ersst-ts-output-wrap','ace-output-wrap','pca-output-wrap'].forEach(id => {
+    ['icoads-output-wrap','gdmi-output-wrap','fdeck-output-wrap','adeck-table-wrap','ersst-ts-output-wrap','ace-output-wrap','pca-output-wrap'].forEach(id => {
       document.getElementById(id).classList.remove('visible');
     });
   }
@@ -2469,7 +2532,7 @@
       };
       if (mode === 'framediff') {
         params.delta = document.getElementById('sa-delta').value;
-        params.filtration = document.getElementById('sa-filtration').checked ? '1' : '0';
+        params.filtration = document.getElementById('sa-filtration').classList.contains('active') ? '1' : '0';
       }
       const lat = val('sa-lat'), lon = val('sa-lon');
       if (lat && lon) {
@@ -3149,6 +3212,35 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), extra, 'shear distribution');
       setDone('e5', btn);
     } catch (e) { setError('e5', btn, e.message); }
+  }
+
+  async function runIcoads() {
+    const btn = event.target;
+    setLoading('ic', btn);
+    hideAllTables();
+    try {
+      const data = await callAPI('/icoads', {
+        stormname: val('ic-storm'),
+        lat:       val('ic-lat'),
+        lon:       val('ic-lon'),
+        month:     val('ic-month'),
+        day:       val('ic-day'),
+        year:      val('ic-year'),
+        hour:      val('ic-hour'),
+        plottype:  val('ic-plottype'),
+        level:     val('ic-level'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      if (data.obs && data.obs.length) {
+        const fmt = v => (v == null || isNaN(v)) ? '—' : (+v).toFixed(1);
+        document.getElementById('icoads-obs-body').innerHTML = data.obs.map(r =>
+          `<tr><td>${r.station || '—'}</td><td>${fmt(r.latitude)}</td><td>${fmt(r.longitude)}</td><td>${fmt(r.windspd_kt)}</td><td>${fmt(r.winddir)}</td><td>${fmt(r.slp_hpa)}</td><td>${fmt(r.temp_c)}</td><td>${fmt(r.dewp_c)}</td></tr>`
+        ).join('');
+        document.getElementById('icoads-output-wrap').classList.add('visible');
+        switchView('table');
+      }
+      setDone('ic', btn);
+    } catch (e) { setError('ic', btn, e.message); }
   }
 
   async function runMetar() {

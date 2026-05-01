@@ -3245,6 +3245,13 @@
     ).join('');
   }
 
+  function _icUpdateIndicators() {
+    _icCols.forEach(c => {
+      const el = document.getElementById('ic-sort-' + c);
+      if (el) el.textContent = c === _icSortCol ? (_icSortAsc ? ' ▲' : ' ▼') : '';
+    });
+  }
+
   function sortIcoads(col) {
     if (_icSortCol === col) {
       _icSortAsc = !_icSortAsc;
@@ -3252,10 +3259,7 @@
       _icSortCol = col;
       _icSortAsc = col === 'station';
     }
-    _icCols.forEach(c => {
-      document.getElementById('ic-sort-' + c).textContent =
-        c === _icSortCol ? (_icSortAsc ? ' ▲' : ' ▼') : '';
-    });
+    _icUpdateIndicators();
     renderIcoadsTable();
   }
 
@@ -3280,14 +3284,12 @@
         _icData = data.obs;
         _icSortCol = 'windspd_kt';
         _icSortAsc = false;
-        _icCols.forEach(c => {
-          document.getElementById('ic-sort-' + c).textContent = c === 'windspd_kt' ? ' ▼' : '';
-        });
+        _icUpdateIndicators();
         renderIcoadsTable();
         document.getElementById('icoads-output-wrap').classList.add('visible');
-        switchView('table');
       }
-      setDone('ic', btn);
+      setStatus('ic', 'success', `done. switch to table view for obs list (${(data.obs || []).length} stations)`);
+      btn.disabled = false;
     } catch (e) { setError('ic', btn, e.message); }
   }
 

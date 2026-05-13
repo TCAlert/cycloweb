@@ -92,6 +92,8 @@
     #sd-anomaly.active:hover { background: #333 !important; }
     #gdmi-cum.active { background: #111 !important; color: #fff !important; }
     #gdmi-cum.active:hover { background: #333 !important; }
+    #ic-icoads.active { background: #111 !important; color: #fff !important; }
+    #ic-icoads.active:hover { background: #333 !important; }
     #track-gridded-btn.active { background: #111 !important; color: #fff !important; }
     #track-gridded-btn.active:hover { background: #333 !important; }
     #em-anomaly.active { background: #111 !important; color: #fff !important; }
@@ -1294,6 +1296,10 @@
           <label>LON OVERRIDE</label>
           <input id="ic-lon" type="text" placeholder="-80.0" class="optional" />
         </div>
+        <button id="ic-icoads" type="button" class="active" onclick="this.classList.toggle('active')"
+                style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer;align-self:flex-start">ICOADS OBS</button>
       </div>
       <button class="submit" onclick="runIcoads()">run</button>
       <div class="status" id="ic-status"></div>
@@ -3268,6 +3274,7 @@
     setLoading('ic', btn);
     hideAllTables();
     try {
+      const icoads = document.getElementById('ic-icoads').classList.contains('active');
       const data = await callAPI('/icoads', {
         stormname: val('ic-storm'),
         lat:       val('ic-lat'),
@@ -3278,6 +3285,7 @@
         hour:      val('ic-hour'),
         plottype:  val('ic-plottype'),
         level:     val('ic-level'),
+        icoads,
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.obs && data.obs.length) {

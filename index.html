@@ -1305,6 +1305,26 @@
       <div class="status" id="ic-status"></div>
     </div>
 
+    <div class="param-panel" id="params-gridded-ace">
+      <div class="param-title">ACE Density Anomaly</div>
+      <div class="param-desc">Kernel-smoothed ACE density anomaly map from IBTrACS. 30-year sliding climatology, 150 km radius, Gaussian filter σ=3.</div>
+      <div class="field">
+        <label>BASIN</label>
+        <select id="ga-basin">
+          <option value="AL">AL</option>
+          <option value="EP">EP</option>
+          <option value="WP">WP</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="ga-years" type="text" placeholder="2020,2023" />
+        <span class="hint">comma-separated</span>
+      </div>
+      <button class="submit" onclick="runGriddedAce()">run</button>
+      <div class="status" id="ga-status"></div>
+    </div>
+
     <div class="param-panel" id="params-era5m">
       <div class="param-title">ERA5 Monthly Composite</div>
       <div class="param-desc">0.25° ERA5 monthly mean or anomaly composites via CDS API. Fixed 1991–2020 climatology.</div>
@@ -1582,6 +1602,7 @@
           <button class="tab-btn" data-tab="ace">ACE</button>
           <button class="tab-btn" data-tab="pca">PCA</button>
           <button class="tab-btn" data-tab="icoads">ICOADS</button>
+          <button class="tab-btn" data-tab="gridded-ace">ACE DENSITY</button>
         </div>
       </div>
       <div class="tab-dropdown">
@@ -1675,6 +1696,7 @@
           <select id="et-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
             <option value="sst">SST</option>
             <option value="hgt">HGT</option>
+            <option value="ace">ACE</option>
           </select>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('bottom')">bottom 10 →</button>
@@ -1702,6 +1724,7 @@
           <select id="ac-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
             <option value="sst">SST</option>
             <option value="hgt">HGT</option>
+            <option value="ace">ACE</option>
           </select>
           <button class="ace-ersst-btn" onclick="aceToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="aceToComposite('bottom')">bottom 10 →</button>
@@ -2964,8 +2987,11 @@
 
   function ersstTsToComposite(which) {
     const years = (which === 'top' ? _etTop10 : _etBottom10).join(',');
-    if (document.getElementById('et-composite-type').value === 'hgt') {
+    const type = document.getElementById('et-composite-type').value;
+    if (type === 'hgt') {
       run20crInline(years, val('et-month'), 'et');
+    } else if (type === 'ace') {
+      runGriddedAceInline(years, val('ac-basin') || 'AL', 'et');
     } else {
       document.querySelector('.tab-btn[data-tab="ersst"]').click();
       document.getElementById('er-years').value = years;
@@ -3127,11 +3153,30 @@
 
   function aceToComposite(which) {
     const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
-    if (document.getElementById('ac-composite-type').value === 'hgt') {
+    const type = document.getElementById('ac-composite-type').value;
+    if (type === 'hgt') {
       run20crInline(years, document.getElementById('ac-corr-month').value.trim(), 'ac');
+    } else if (type === 'ace') {
+      runGriddedAceInline(years, val('ac-basin'), 'ac');
     } else {
       document.querySelector('.tab-btn[data-tab="ersst"]').click();
       document.getElementById('er-years').value = years;
+    }
+  }
+
+  async function runGriddedAceInline(years, basin, prefix) {
+    const statusEl = document.getElementById(`${prefix}-composite-status`);
+    statusEl.className = 'status loading';
+    statusEl.textContent = 'working...';
+    try {
+      const data = await callAPI('/gridded-ace', { basin: basin || 'AL', years });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      switchView('output');
+      statusEl.className = 'status done';
+      statusEl.textContent = 'done';
+    } catch (e) {
+      statusEl.className = 'status error';
+      statusEl.textContent = e.message;
     }
   }
 
@@ -3267,6 +3312,20 @@
     }
     _icUpdateIndicators();
     renderIcoadsTable();
+  }
+
+  async function runGriddedAce() {
+    const btn = event.target;
+    setLoading('ga', btn);
+    try {
+      const data = await callAPI('/gridded-ace', {
+        basin: val('ga-basin'),
+        years: val('ga-years'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setStatus('ga', 'success', 'done');
+      btn.disabled = false;
+    } catch (e) { setError('ga', btn, e.message); }
   }
 
   async function runIcoads() {

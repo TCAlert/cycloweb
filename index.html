@@ -3107,9 +3107,12 @@
       const v = _pcaSortAsc ? 1 : -1;
       return a[_pcaSortCol] < b[_pcaSortCol] ? -v : a[_pcaSortCol] > b[_pcaSortCol] ? v : 0;
     });
-    document.getElementById('pca-table-body').innerHTML = rows.map(r =>
-      `<tr><td>${r.rank}</td><td>${r.year}</td><td>${r.pc.toFixed(3)}</td></tr>`
-    ).join('');
+    const top10Set    = new Set(_pcaTop10);
+    const bottom10Set = new Set(_pcaBottom10);
+    document.getElementById('pca-table-body').innerHTML = rows.map(r => {
+      const cls = top10Set.has(r.year) ? 'ace-top' : bottom10Set.has(r.year) ? 'ace-bot' : '';
+      return `<tr class="${cls}"><td>${r.rank}</td><td>${r.year}</td><td>${r.pc.toFixed(3)}</td></tr>`;
+    }).join('');
   }
 
   function sortPca(col) {

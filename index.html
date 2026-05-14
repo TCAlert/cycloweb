@@ -1749,6 +1749,14 @@
 
       <div class="ace-output-wrap" id="pca-output-wrap">
         <div class="ace-ersst-btns">
+          <select id="pca-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="sst">SST</option>
+            <option value="hgt">HGT</option>
+            <option value="ace">ACE</option>
+          </select>
+          <button class="ace-ersst-btn" onclick="pcaToComposite('top')">top 10 →</button>
+          <button class="ace-ersst-btn" onclick="pcaToComposite('bottom')">bottom 10 →</button>
+          <span class="status" id="pca-composite-status" style="font-size:9px"></span>
           <input id="pca-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <button class="ace-ersst-btn" onclick="runCorrInline('pca')">→ Corr</button>
           <span class="status" id="pca-corr-status" style="font-size:9px"></span>
@@ -3088,7 +3096,9 @@
 
   // ── PCA ───────────────────────────────────────────────────────────────────
 
-  let _pcaData = [];
+  let _pcaData    = [];
+  let _pcaTop10   = [];
+  let _pcaBottom10 = [];
   let _pcaSortCol = 'rank';
   let _pcaSortAsc = true;
 
@@ -3137,7 +3147,9 @@
       const data = await callAPI('/pca', params);
       const sorted = [...data.years].sort((a, b) => b.pc - a.pc);
       sorted.forEach((r, i) => r.rank = i + 1);
-      _pcaData = data.years.map(r => sorted.find(s => s.year === r.year));
+      _pcaData     = data.years.map(r => sorted.find(s => s.year === r.year));
+      _pcaTop10    = data.top10;
+      _pcaBottom10 = data.bottom10;
       _pcaSortCol = 'rank';
       _pcaSortAsc = true;
       document.getElementById('pca-sort-rank').textContent = ' ▲';
@@ -3158,6 +3170,19 @@
       run20crInline(years, document.getElementById('ac-corr-month').value.trim(), 'ac');
     } else if (type === 'ace') {
       runGriddedAceInline(years, val('ac-basin'), 'ac');
+    } else {
+      document.querySelector('.tab-btn[data-tab="ersst"]').click();
+      document.getElementById('er-years').value = years;
+    }
+  }
+
+  function pcaToComposite(which) {
+    const years = (which === 'top' ? _pcaTop10 : _pcaBottom10).join(',');
+    const type = document.getElementById('pca-composite-type').value;
+    if (type === 'hgt') {
+      run20crInline(years, document.getElementById('pca-corr-month').value.trim(), 'pca');
+    } else if (type === 'ace') {
+      runGriddedAceInline(years, val('ac-basin') || 'AL', 'pca');
     } else {
       document.querySelector('.tab-btn[data-tab="ersst"]').click();
       document.getElementById('er-years').value = years;

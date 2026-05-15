@@ -3257,12 +3257,15 @@
         btn.disabled = false;
         return;
       }
+      const typeDropId = source === 'ersst-ts' ? 'et-composite-type' : source === 'pca' ? 'pca-composite-type' : 'ac-composite-type';
+      const corrField  = document.getElementById(typeDropId)?.value === 'ace' ? 'ace' : 'ersst';
       const params = {
         csv:        series.join(','),
         corr_month: corrMonth,
         start_year: String(startYear),
         end_year:   String(endYear),
         label,
+        corr_field: corrField,
       };
       if (source === 'ace') {
         const aceDay  = document.getElementById('ac-day')?.value?.trim();

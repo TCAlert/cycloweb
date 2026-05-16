@@ -94,6 +94,8 @@
     #gdmi-cum.active:hover { background: #333 !important; }
     #ic-icoads.active { background: #111 !important; color: #fff !important; }
     #ic-icoads.active:hover { background: #333 !important; }
+    #ga-sliding.active { background: #111 !important; color: #fff !important; }
+    #ga-sliding.active:hover { background: #333 !important; }
     #track-gridded-btn.active { background: #111 !important; color: #fff !important; }
     #track-gridded-btn.active:hover { background: #333 !important; }
     #em-anomaly.active { background: #111 !important; color: #fff !important; }
@@ -1307,7 +1309,7 @@
 
     <div class="param-panel" id="params-gridded-ace">
       <div class="param-title">ACE Density Anomaly</div>
-      <div class="param-desc">Kernel-smoothed ACE density anomaly map from IBTrACS. 30-year sliding climatology, 150 km radius, Gaussian filter σ=3.</div>
+      <div class="param-desc">Kernel-smoothed ACE density anomaly map from IBTrACS. 150 km radius, Gaussian filter σ=3.</div>
       <div class="field">
         <label>BASIN</label>
         <select id="ga-basin">
@@ -1321,6 +1323,10 @@
         <input id="ga-years" type="text" placeholder="2020,2023" />
         <span class="hint">comma-separated</span>
       </div>
+      <button id="ga-sliding" type="button" onclick="this.classList.toggle('active')"
+              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                     cursor:pointer;align-self:flex-start">SLIDING CLIMO</button>
       <button class="submit" onclick="runGriddedAce()">run</button>
       <div class="status" id="ga-status"></div>
     </div>
@@ -3231,6 +3237,8 @@
         series    = _pcaData.map(r => r.pc);
         startYear = val('pca-start');
         endYear   = val('pca-end');
+        lat1 = val('pca-lat1'); lat2 = val('pca-lat2');
+        lon1 = val('pca-lon1'); lon2 = val('pca-lon2');
         label     = `EOF${val('pca-eof') || '1'} PC`;
       } else {
         series    = _aceData.map(r => r.ace);
@@ -3349,9 +3357,11 @@
     const btn = event.target;
     setLoading('ga', btn);
     try {
+      const sliding = document.getElementById('ga-sliding').classList.contains('active');
       const data = await callAPI('/gridded-ace', {
-        basin: val('ga-basin'),
-        years: val('ga-years'),
+        basin:      val('ga-basin'),
+        years:      val('ga-years'),
+        climo_type: sliding ? 'sliding' : 'fixed',
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setStatus('ga', 'success', 'done');

@@ -2693,20 +2693,8 @@
           `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td>${actionCells(s[0])}</tr>`
         ).join('');
 
-        const groupRows = Object.entries(groups).map(([letter, ids]) => {
-          const members = ids.map(id => stormMap[id]).filter(Boolean);
-          const starts = members.map(s => s[1]).sort();
-          const ends   = members.map(s => s[2]).sort();
-          const lats   = members.map(s => s[3]);
-          const lons   = members.map(s => s[4]);
-          const peaks  = members.map(s => s[5]);
-          const totalMembers = members.reduce((sum, s) => sum + s[6], 0);
-          const minStart = starts[0]?.slice(0,10) || '—';
-          const maxEnd   = ends[ends.length-1]?.slice(0,10) || '—';
-          const avgLat   = lats.length ? (lats.reduce((a,b)=>a+b,0)/lats.length).toFixed(1) : '—';
-          const avgLon   = lons.length ? (lons.reduce((a,b)=>a+b,0)/lons.length).toFixed(1) : '—';
-          const maxPeak  = peaks.length ? Math.max(...peaks) : '—';
-          return `<tr style="background:#f0f0f0;font-style:italic"><td><b>${letter}</b></td><td>${minStart}</td><td>${maxEnd}</td><td>${avgLat}</td><td>${avgLon}</td><td>${maxPeak}</td><td>${totalMembers}</td>${actionCells(letter)}</tr>`;
+        const groupRows = Object.entries(groups).map(([letter, stats]) => {
+          return `<tr style="background:#f0f0f0;font-style:italic"><td><b>${letter}</b></td><td>${stats.min_start}</td><td>${stats.max_end}</td><td>${stats.avg_lat}</td><td>${stats.avg_lon}</td><td>${stats.max_peak}</td><td>${stats.n_samples}</td>${actionCells(letter)}</tr>`;
         }).join('');
 
         document.getElementById('gdmi-storms-body').innerHTML = stormRows + groupRows;

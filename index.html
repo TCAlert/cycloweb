@@ -2674,10 +2674,42 @@
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.storms && data.storms.length) {
-        document.getElementById('gdmi-output-header').textContent = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization`;
-        document.getElementById('gdmi-storms-body').innerHTML = data.storms.map(s =>
-          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td><select class="ref-btn" onchange="runGdmiTrack('${s[0]}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td><td><select class="ref-btn" onchange="runGdmiSeries('${s[0]}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td><td><select class="ref-btn" onchange="runGdmiProbs('${s[0]}', this)"><option value="">probs</option><option value="vmax">vmax</option><option value="ri">ri</option></select></td><td><button class="ref-btn" onclick="runGdmiSize('${s[0]}')">size</button></td></tr>`
+        const groups = data.groups || {};
+        const groupCount = Object.keys(groups).length;
+        const headerText = `${data.storms.length} storm${data.storms.length !== 1 ? 's' : ''} in initialization` +
+          (groupCount ? ` · ${groupCount} group${groupCount !== 1 ? 's' : ''}` : '');
+        document.getElementById('gdmi-output-header').textContent = headerText;
+
+        const stormMap = {};
+        data.storms.forEach(s => { stormMap[s[0]] = s; });
+
+        const actionCells = id =>
+          `<td><select class="ref-btn" onchange="runGdmiTrack('${id}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td>` +
+          `<td><select class="ref-btn" onchange="runGdmiSeries('${id}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td>` +
+          `<td><select class="ref-btn" onchange="runGdmiProbs('${id}', this)"><option value="">probs</option><option value="vmax">vmax</option><option value="ri">ri</option></select></td>` +
+          `<td><button class="ref-btn" onclick="runGdmiSize('${id}')">size</button></td>`;
+
+        const stormRows = data.storms.map(s =>
+          `<tr><td>${s[0]}</td><td>${s[1].slice(0,10)}</td><td>${s[2].slice(0,10)}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td>${actionCells(s[0])}</tr>`
         ).join('');
+
+        const groupRows = Object.entries(groups).map(([letter, ids]) => {
+          const members = ids.map(id => stormMap[id]).filter(Boolean);
+          const starts = members.map(s => s[1]).sort();
+          const ends   = members.map(s => s[2]).sort();
+          const lats   = members.map(s => s[3]);
+          const lons   = members.map(s => s[4]);
+          const peaks  = members.map(s => s[5]);
+          const totalMembers = members.reduce((sum, s) => sum + s[6], 0);
+          const minStart = starts[0]?.slice(0,10) || '—';
+          const maxEnd   = ends[ends.length-1]?.slice(0,10) || '—';
+          const avgLat   = lats.length ? (lats.reduce((a,b)=>a+b,0)/lats.length).toFixed(1) : '—';
+          const avgLon   = lons.length ? (lons.reduce((a,b)=>a+b,0)/lons.length).toFixed(1) : '—';
+          const maxPeak  = peaks.length ? Math.max(...peaks) : '—';
+          return `<tr style="background:#f0f0f0;font-style:italic"><td><b>${letter}</b></td><td>${minStart}</td><td>${maxEnd}</td><td>${avgLat}</td><td>${avgLon}</td><td>${maxPeak}</td><td>${totalMembers}</td>${actionCells(letter)}</tr>`;
+        }).join('');
+
+        document.getElementById('gdmi-storms-body').innerHTML = stormRows + groupRows;
         hideAllTables();
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }

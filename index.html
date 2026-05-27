@@ -1651,6 +1651,12 @@
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                        cursor:pointer">CONTINUOUS</button>
       </div>
+      <div id="gdmi-intensity-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <button id="gdmi-intensity-btn" type="button" onclick="rerunGdmiWithIntensity(this)"
+                style="font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer">INTENSITY</button>
+      </div>
     </div>
 
     <!-- ── Table area ── -->
@@ -2658,20 +2664,25 @@
     document.getElementById(hrId).value = String(hr).padStart(2, '0');
   }
 
-  async function runGdmi() {
-    const btn = event.target;
-    setLoading('gdmi', btn);
+  let _gdmiPlotType = 'track';
+
+  async function runGdmi(plotType) {
+    _gdmiPlotType = plotType || 'track';
+    const btn = plotType ? null : (event && event.target);
+    if (btn) setLoading('gdmi', btn);
     document.getElementById('gdmi-output-wrap').classList.remove('visible');
     try {
       const cum = document.getElementById('gdmi-cum').classList.contains('active');
-      const data = await callAPI('/gdmi', {
+      const params = {
         init:    val('gdmi-init'),
         init_hr: val('gdmi-init-hr'),
         date:    val('gdmi-date'),
         date_hr: val('gdmi-date-hr'),
         region:  val('gdmi-region'),
         cum,
-      });
+      };
+      if (_gdmiPlotType !== 'track') params.plot_type = _gdmiPlotType;
+      const data = await callAPI('/gdmi', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       if (data.storms && data.storms.length) {
         const groups = data.groups || {};
@@ -2701,10 +2712,18 @@
         hideAllTables();
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
-      setDone('gdmi', btn);
+      const iwrap = document.getElementById('gdmi-intensity-wrap');
+      const ibtn  = document.getElementById('gdmi-intensity-btn');
+      ibtn.classList.toggle('active', _gdmiPlotType === 'intensity');
+      iwrap.style.display = '';
+      if (btn) setDone('gdmi', btn);
       const st = document.getElementById('gdmi-status');
       st.innerHTML = 'Done.<br><span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'table\')">Storm list available in table tab.</span>';
-    } catch (e) { setError('gdmi', btn, e.message); }
+    } catch (e) { if (btn) setError('gdmi', btn, e.message); }
+  }
+
+  async function rerunGdmiWithIntensity() {
+    await runGdmi(_gdmiPlotType === 'intensity' ? 'track' : 'intensity');
   }
 
   async function runGdmiSize(storm) {

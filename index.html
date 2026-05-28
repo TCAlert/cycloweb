@@ -1336,6 +1336,20 @@
               style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                      cursor:pointer;align-self:flex-start">SLIDING CLIMO</button>
+      <button type="button" onclick="this.classList.toggle('active');document.getElementById('ga-advanced').style.display=this.classList.contains('active')?'':'none'"
+              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                     cursor:pointer;align-self:flex-start">ADVANCED</button>
+      <div id="ga-advanced" style="display:none;margin-top:.3rem">
+        <div class="field">
+          <label>VMIN</label>
+          <input id="ga-vmin" type="text" placeholder="default" />
+        </div>
+        <div class="field">
+          <label>VMAX</label>
+          <input id="ga-vmax" type="text" placeholder="default" />
+        </div>
+      </div>
       <button class="submit" onclick="runGriddedAce()">run</button>
       <div class="status" id="ga-status"></div>
     </div>
@@ -3452,12 +3466,16 @@
     setLoading('ga', btn);
     try {
       const sliding = document.getElementById('ga-sliding').classList.contains('active');
-      const data = await callAPI('/gridded-ace', {
+      const vmin = val('ga-vmin'), vmax = val('ga-vmax');
+      const params = {
         basin:      val('ga-basin'),
         years:      val('ga-years'),
         climo_type: sliding ? 'sliding' : 'fixed',
         dtype:      val('ga-dtype'),
-      });
+      };
+      if (vmin) params.vmin = vmin;
+      if (vmax) params.vmax = vmax;
+      const data = await callAPI('/gridded-ace', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setStatus('ga', 'success', 'done');
       btn.disabled = false;

@@ -1309,13 +1309,22 @@
 
     <div class="param-panel" id="params-gridded-ace">
       <div class="param-title">ACE Density Anomaly</div>
-      <div class="param-desc">Kernel-smoothed ACE density anomaly map from IBTrACS. 150 km radius, Gaussian filter σ=3.</div>
+      <div class="param-desc">Kernel-smoothed TC density anomaly map from IBTrACS. 150 km radius, Gaussian filter σ=3.</div>
       <div class="field">
         <label>BASIN</label>
         <select id="ga-basin">
           <option value="AL">AL</option>
           <option value="EP">EP</option>
           <option value="WP">WP</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>TYPE</label>
+        <select id="ga-dtype">
+          <option value="ACE">ACE</option>
+          <option value="TCG">TCG</option>
+          <option value="LMI">LMI</option>
+          <option value="LMI_C">LMI (count)</option>
         </select>
       </div>
       <div class="field">
@@ -3447,6 +3456,7 @@
         basin:      val('ga-basin'),
         years:      val('ga-years'),
         climo_type: sliding ? 'sliding' : 'fixed',
+        dtype:      val('ga-dtype'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setStatus('ga', 'success', 'done');

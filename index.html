@@ -1325,6 +1325,10 @@
           <option value="TCG">TCG</option>
           <option value="LMI">LMI</option>
           <option value="LMI_C">LMI (count)</option>
+          <option value="RI">RI</option>
+          <option value="DV24">ΔV 24hr</option>
+          <option value="SPEED">Speed</option>
+          <option value="BEARING">Bearing</option>
         </select>
       </div>
       <div class="field">
@@ -1776,6 +1780,16 @@
           <button class="ace-ersst-btn" onclick="aceToComposite('bottom')">bottom 10 →</button>
           <span class="status" id="ac-composite-status" style="font-size:9px"></span>
           <input id="ac-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <select id="ac-corr-dtype" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="ACE">ACE</option>
+            <option value="TCG">TCG</option>
+            <option value="LMI">LMI</option>
+            <option value="LMI_C">LMI (count)</option>
+            <option value="RI">RI</option>
+            <option value="DV24">ΔV 24hr</option>
+            <option value="SPEED">Speed</option>
+            <option value="BEARING">Bearing</option>
+          </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('ace')">→ Corr</button>
           <span class="status" id="ac-corr-status" style="font-size:9px"></span>
         </div>
@@ -3388,6 +3402,9 @@
         const aceDay2 = document.getElementById('ac-day2')?.value?.trim();
         if (aceDay)  { params.day_label  = formatDayLabel(aceDay); }
         if (aceDay2) { params.day2_label = formatDayLabel(aceDay2); }
+        if (corrField === 'ace') {
+          params.dtype = document.getElementById('ac-corr-dtype')?.value || 'ACE';
+        }
       }
       if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }

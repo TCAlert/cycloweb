@@ -1639,6 +1639,17 @@
           <option value="lon">lon</option>
         </select>
       </div>
+      <div id="lmi-cvar-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">COLORBAR:</label>
+        <select id="lmi-cvar-sel" class="ref-btn" onchange="rerunLmiWithCvar(this)">
+          <option value="lon">lon</option>
+          <option value="lat">lat</option>
+          <option value="time">time</option>
+          <option value="slp">slp</option>
+          <option value="rmw">rmw</option>
+          <option value="dvmax">dvmax</option>
+        </select>
+      </div>
       <div id="track-gridded-wrap" style="display:none;margin-top:.5rem;text-align:center">
         <button id="track-gridded-btn" type="button" onclick="rerunTrackWithGridded(this)"
                 style="font-family:inherit;font-size:9px;letter-spacing:.04em;
@@ -1683,8 +1694,8 @@
       <div class="fdeck-output-wrap" id="gdmi-output-wrap">
         <table class="fdeck-output">
           <thead>
-            <tr><td colspan="11" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
-            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td>Members</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td colspan="12" id="gdmi-output-header" style="font-weight:bold">Run a map to populate storm list.</td></tr>
+            <tr><td>ID</td><td>Start</td><td>End</td><td>Init Lat</td><td>Init Lon</td><td>Peak (kt)</td><td>Members</td><td></td><td></td><td></td><td></td><td></td></tr>
           </thead>
           <tbody id="gdmi-storms-body"></tbody>
         </table>
@@ -2698,6 +2709,7 @@
           `<td><select class="ref-btn" onchange="runGdmiTrack('${id}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td>` +
           `<td><select class="ref-btn" onchange="runGdmiSeries('${id}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td>` +
           `<td><select class="ref-btn" onchange="runGdmiProbs('${id}', this)"><option value="">probs</option><option value="vmax">vmax</option><option value="ri">ri</option></select></td>` +
+          `<td><select class="ref-btn" onchange="runGdmiLmi('${id}', this)"><option value="">lmi</option><option value="lon">lon</option><option value="lat">lat</option><option value="time">time</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="dvmax">dvmax</option></select></td>` +
           `<td><button class="ref-btn" onclick="runGdmiSize('${id}')">size</button></td>`;
 
         const stormRows = data.storms.map(s =>
@@ -2740,6 +2752,40 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       st.textContent = 'done.';
     } catch (e) { st.textContent = 'error: ' + e.message; }
+  }
+
+  let _lmiStorm = '', _lmiVar = '';
+
+  async function runGdmiLmi(storm, sel, cvar) {
+    const varName = sel ? sel.value : _lmiVar;
+    if (sel) sel.value = '';
+    if (!varName) return;
+    _lmiStorm = storm;
+    _lmiVar = varName;
+    const st = document.getElementById('gdmi-status');
+    st.textContent = 'loading...';
+    const params = {
+      init:    val('gdmi-init'),
+      init_hr: val('gdmi-init-hr'),
+      date:    val('gdmi-date'),
+      date_hr: val('gdmi-date-hr'),
+      storm,
+      var:     varName,
+    };
+    if (cvar) params.cvar = cvar;
+    try {
+      const data = await callAPI('/gdmi/lmi', params);
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      st.textContent = 'done.';
+      const wrap = document.getElementById('lmi-cvar-wrap');
+      const csel = document.getElementById('lmi-cvar-sel');
+      csel.value = cvar || varName;
+      wrap.style.display = '';
+    } catch (e) { st.textContent = 'error: ' + e.message; }
+  }
+
+  async function rerunLmiWithCvar(sel) {
+    await runGdmiLmi(_lmiStorm, null, sel.value);
   }
 
   let _trackStorm = '', _trackVar = '', _trackGridded = false;

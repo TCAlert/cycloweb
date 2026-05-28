@@ -1336,18 +1336,18 @@
               style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                      cursor:pointer;align-self:flex-start">SLIDING CLIMO</button>
-      <button type="button" onclick="this.classList.toggle('active');document.getElementById('ga-advanced').style.display=this.classList.contains('active')?'':'none'"
-              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
-                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
-                     cursor:pointer;align-self:flex-start">ADVANCED</button>
-      <div id="ga-advanced" style="display:none;margin-top:.3rem">
+      <button type="button" onclick="document.getElementById('ga-adv').classList.toggle('open');this.textContent=document.getElementById('ga-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="ga-adv" class="cbar-advanced">
         <div class="field">
-          <label>VMIN</label>
-          <input id="ga-vmin" type="text" placeholder="default" />
+          <label>CBAR MIN</label>
+          <input id="ga-vmin" type="text" placeholder="default" class="optional" />
         </div>
         <div class="field">
-          <label>VMAX</label>
-          <input id="ga-vmax" type="text" placeholder="default" />
+          <label>CBAR MAX</label>
+          <input id="ga-vmax" type="text" placeholder="default" class="optional" />
         </div>
       </div>
       <button class="submit" onclick="runGriddedAce()">run</button>

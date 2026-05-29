@@ -1348,6 +1348,14 @@
           </select>
         </div>
         <div class="field">
+          <label>SIGMA</label>
+          <input id="ga-sigma" type="text" placeholder="3" class="optional" />
+        </div>
+        <div class="field">
+          <label>RADIUS (km)</label>
+          <input id="ga-d" type="text" placeholder="150" class="optional" />
+        </div>
+        <div class="field">
           <label>CBAR MIN</label>
           <input id="ga-vmin" type="text" placeholder="default" class="optional" />
         </div>
@@ -3506,6 +3514,7 @@
     setLoading('ga', btn);
     try {
       const vmin = val('ga-vmin'), vmax = val('ga-vmax');
+      const sigma = val('ga-sigma'), d = val('ga-d');
       const params = {
         basin:      val('ga-basin'),
         years:      val('ga-years'),
@@ -3514,6 +3523,8 @@
       };
       if (vmin) params.vmin = vmin;
       if (vmax) params.vmax = vmax;
+      if (sigma) params.sigma = sigma;
+      if (d) params.d = d;
       const data = await callAPI('/gridded-ace', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setStatus('ga', 'success', 'done');

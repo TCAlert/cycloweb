@@ -94,8 +94,6 @@
     #gdmi-cum.active:hover { background: #333 !important; }
     #ic-icoads.active { background: #111 !important; color: #fff !important; }
     #ic-icoads.active:hover { background: #333 !important; }
-    #ga-sliding.active { background: #111 !important; color: #fff !important; }
-    #ga-sliding.active:hover { background: #333 !important; }
     #track-gridded-btn.active { background: #111 !important; color: #fff !important; }
     #track-gridded-btn.active:hover { background: #333 !important; }
     #em-anomaly.active { background: #111 !important; color: #fff !important; }
@@ -1336,15 +1334,19 @@
         <input id="ga-years" type="text" placeholder="2020,2023" />
         <span class="hint">comma-separated</span>
       </div>
-      <button id="ga-sliding" type="button" onclick="this.classList.toggle('active')"
-              style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
-                     padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
-                     cursor:pointer;align-self:flex-start">SLIDING CLIMO</button>
       <button type="button" onclick="document.getElementById('ga-adv').classList.toggle('open');this.textContent=document.getElementById('ga-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
               style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
                      cursor:pointer;align-self:flex-start">▼ advanced</button>
       <div id="ga-adv" class="cbar-advanced">
+        <div class="field">
+          <label>CLIMO</label>
+          <select id="ga-climo-type">
+            <option value="sliding">Sliding (30yr)</option>
+            <option value="fixed">Fixed (1985–2025)</option>
+            <option value="mean">Mean (no anomaly)</option>
+          </select>
+        </div>
         <div class="field">
           <label>CBAR MIN</label>
           <input id="ga-vmin" type="text" placeholder="default" class="optional" />
@@ -3482,12 +3484,11 @@
     const btn = event.target;
     setLoading('ga', btn);
     try {
-      const sliding = document.getElementById('ga-sliding').classList.contains('active');
       const vmin = val('ga-vmin'), vmax = val('ga-vmax');
       const params = {
         basin:      val('ga-basin'),
         years:      val('ga-years'),
-        climo_type: sliding ? 'sliding' : 'fixed',
+        climo_type: val('ga-climo-type') || 'sliding',
         dtype:      val('ga-dtype'),
       };
       if (vmin) params.vmin = vmin;

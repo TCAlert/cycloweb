@@ -1567,38 +1567,30 @@
         </select>
       </div>
       <div class="field">
-        <label>MONTH</label>
-        <input id="oi-month" type="text" placeholder="6" maxlength="2" />
-        <span class="hint">1–12</span>
+        <label>DATE</label>
+        <input id="oi-date" type="text" placeholder="06-04-2026" maxlength="10" />
+        <span class="hint">MM-DD-YYYY</span>
       </div>
-      <div class="field">
-        <label>DAY</label>
-        <input id="oi-day" type="text" placeholder="1" maxlength="2" />
-        <span class="hint">1–31</span>
-      </div>
-      <div class="field">
-        <label>HOUR (UTC)</label>
-        <input id="oi-hour" type="text" placeholder="12" maxlength="2" class="optional" />
-        <span class="hint">synoptic hour — optional</span>
-      </div>
-      <div class="field">
-        <label>PLOT YEAR</label>
-        <input id="oi-year" type="text" placeholder="2025" maxlength="4" />
-      </div>
-      <div class="field">
-        <label>ISOTHERM (°C)</label>
-        <input id="oi-isotherm" type="text" placeholder="26" maxlength="4" class="optional" />
-        <span class="hint">default 26 — optional</span>
-      </div>
-      <div class="field">
-        <label>START YEAR</label>
-        <input id="oi-start" type="text" placeholder="1982" maxlength="4" class="optional" />
-        <span class="hint">climo start — optional</span>
-      </div>
-      <div class="field">
-        <label>END YEAR</label>
-        <input id="oi-end" type="text" placeholder="2025" maxlength="4" class="optional" />
-        <span class="hint">climo end — optional</span>
+      <button type="button" onclick="document.getElementById('oi-adv').classList.toggle('open');this.textContent=document.getElementById('oi-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="oi-adv" class="cbar-advanced">
+        <div class="field">
+          <label>ISOTHERM (°C)</label>
+          <input id="oi-isotherm" type="text" placeholder="26" maxlength="4" class="optional" />
+          <span class="hint">default 26</span>
+        </div>
+        <div class="field">
+          <label>START YEAR</label>
+          <input id="oi-start" type="text" placeholder="1982" maxlength="4" class="optional" />
+          <span class="hint">climo start</span>
+        </div>
+        <div class="field">
+          <label>END YEAR</label>
+          <input id="oi-end" type="text" placeholder="2025" maxlength="4" class="optional" />
+          <span class="hint">climo end</span>
+        </div>
       </div>
       <button class="submit" onclick="runOisst()">run</button>
       <button class="submit" id="oi-envelope-btn" onclick="runOisstEnvelope()" disabled style="opacity:.4;cursor:not-allowed;margin-top:.2rem">distribution</button>
@@ -3174,14 +3166,15 @@
   async function runOisst() {
     const btn = event.target;
     setLoading('oi', btn);
-    const month = val('oi-month').padStart(2, '0');
-    const day   = val('oi-day').padStart(2, '0');
-    const hour  = (val('oi-hour') || '12').padStart(2, '0');
+    const parts = val('oi-date').split('-');
+    const month = parts[0].padStart(2, '0');
+    const day   = parts[1].padStart(2, '0');
+    const year  = parts[2];
     try {
       const data = await callAPI('/oisst', {
         storm:      val('oi-region'),
-        date:       `${month}-${day}T${hour}`,
-        plot_year:  val('oi-year'),
+        date:       `${month}-${day}T12`,
+        plot_year:  year,
         isotherm:   val('oi-isotherm'),
         start_year: val('oi-start'),
         end_year:   val('oi-end'),

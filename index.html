@@ -1531,6 +1531,80 @@
       <div class="status" id="em-status"></div>
     </div>
 
+    <div class="param-panel" id="params-oisst">
+      <div class="param-title">OISST SST</div>
+      <div class="param-desc">OISSTv2.1 daily SST contour map and distribution envelope via NOAA S3. Fetches ~45 years of data — expect 1–2 min.</div>
+      <div class="field">
+        <label>REGION</label>
+        <select id="oi-region" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
+          <optgroup label="Atlantic">
+            <option value="natl" selected>NATL</option>
+            <option value="tatl">TATL</option>
+            <option value="catl">CATL</option>
+            <option value="mdr">MDR</option>
+            <option value="gom">GOM</option>
+            <option value="car">CAR</option>
+          </optgroup>
+          <optgroup label="East Pacific">
+            <option value="epac">EPAC</option>
+            <option value="epac2">EPAC2</option>
+            <option value="cpac">CPAC</option>
+            <option value="tpac">TPAC</option>
+          </optgroup>
+          <optgroup label="West Pacific">
+            <option value="wpac">WPAC</option>
+            <option value="wpac2">WPAC2</option>
+          </optgroup>
+          <optgroup label="Indian Ocean">
+            <option value="io">IO</option>
+            <option value="bob">BOB</option>
+            <option value="arb">ARB</option>
+          </optgroup>
+          <optgroup label="Pacific Basin">
+            <option value="npac">NPAC</option>
+            <option value="enso">ENSO</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="oi-month" type="text" placeholder="6" maxlength="2" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>DAY</label>
+        <input id="oi-day" type="text" placeholder="1" maxlength="2" />
+        <span class="hint">1–31</span>
+      </div>
+      <div class="field">
+        <label>HOUR (UTC)</label>
+        <input id="oi-hour" type="text" placeholder="12" maxlength="2" class="optional" />
+        <span class="hint">synoptic hour — optional</span>
+      </div>
+      <div class="field">
+        <label>PLOT YEAR</label>
+        <input id="oi-year" type="text" placeholder="2025" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>ISOTHERM (°C)</label>
+        <input id="oi-isotherm" type="text" placeholder="26" maxlength="4" class="optional" />
+        <span class="hint">default 26 — optional</span>
+      </div>
+      <div class="field">
+        <label>START YEAR</label>
+        <input id="oi-start" type="text" placeholder="1982" maxlength="4" class="optional" />
+        <span class="hint">climo start — optional</span>
+      </div>
+      <div class="field">
+        <label>END YEAR</label>
+        <input id="oi-end" type="text" placeholder="2025" maxlength="4" class="optional" />
+        <span class="hint">climo end — optional</span>
+      </div>
+      <button class="submit" onclick="runOisst()">run</button>
+      <button class="submit" id="oi-envelope-btn" onclick="runOisstEnvelope()" disabled style="opacity:.4;cursor:not-allowed;margin-top:.2rem">distribution</button>
+      <div class="status" id="oi-status"></div>
+    </div>
+
     <div class="param-panel" id="params-metar">
       <div class="param-title">METAR Time Series</div>
       <div class="param-desc">96-hour METAR time series for temperature, pressure, or wind from any ICAO station.</div>
@@ -1643,13 +1717,19 @@
         <div class="tab-dropdown-menu">
           <button class="tab-btn" data-tab="era5">ERA5</button>
           <button class="tab-btn" data-tab="era5m">ERA5 Monthly</button>
-          <button class="tab-btn" data-tab="ersst">ERSST</button>
           <button class="tab-btn" data-tab="20cr">20CR</button>
-          <button class="tab-btn" data-tab="ersst-ts">ERSST TS</button>
           <button class="tab-btn" data-tab="ace">ACE</button>
-          <button class="tab-btn" data-tab="pca">PCA</button>
           <button class="tab-btn" data-tab="icoads">ICOADS</button>
           <button class="tab-btn" data-tab="gridded-ace">ACE DENSITY</button>
+        </div>
+      </div>
+      <div class="tab-dropdown">
+        <button class="tab-dropdown-btn">ocean ▾</button>
+        <div class="tab-dropdown-menu">
+          <button class="tab-btn" data-tab="ersst">ERSST</button>
+          <button class="tab-btn" data-tab="ersst-ts">ERSST TS</button>
+          <button class="tab-btn" data-tab="pca">PCA</button>
+          <button class="tab-btn" data-tab="oisst">OISST</button>
         </div>
       </div>
       <div class="tab-dropdown">
@@ -2468,7 +2548,7 @@
       activeTab = btn.dataset.tab;
       if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar', oisst: 'ref-ersst' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -3087,6 +3167,42 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setDone('em', btn);
     } catch (e) { setError('em', btn, e.message); }
+  }
+
+  // ── OISST ────────────────────────────────────────────────────────────────
+
+  async function runOisst() {
+    const btn = event.target;
+    setLoading('oi', btn);
+    const month = val('oi-month').padStart(2, '0');
+    const day   = val('oi-day').padStart(2, '0');
+    const hour  = (val('oi-hour') || '12').padStart(2, '0');
+    try {
+      const data = await callAPI('/oisst', {
+        storm:      val('oi-region'),
+        date:       `${month}-${day}T${hour}`,
+        plot_year:  val('oi-year'),
+        isotherm:   val('oi-isotherm'),
+        start_year: val('oi-start'),
+        end_year:   val('oi-end'),
+      });
+      showImage(API_BASE + data.contour_url + '?t=' + Date.now(), null, null);
+      const envBtn = document.getElementById('oi-envelope-btn');
+      envBtn.disabled = false;
+      envBtn.style.opacity = '';
+      envBtn.style.cursor = '';
+      setDone('oi', btn);
+    } catch (e) { setError('oi', btn, e.message); }
+  }
+
+  async function runOisstEnvelope() {
+    const btn = event.target;
+    setLoading('oi', btn);
+    try {
+      const data = await callAPI('/oisst/envelope', {});
+      showImage(API_BASE + data.envelope_url + '?t=' + Date.now(), null, null);
+      setDone('oi', btn);
+    } catch (e) { setError('oi', btn, e.message); }
   }
 
   // ── ERSST Timeseries ─────────────────────────────────────────────────────

@@ -1537,33 +1537,7 @@
       <div class="field">
         <label>REGION</label>
         <select id="oi-region" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
-          <optgroup label="Atlantic">
-            <option value="natl" selected>NATL</option>
-            <option value="tatl">TATL</option>
-            <option value="catl">CATL</option>
-            <option value="mdr">MDR</option>
-            <option value="gom">GOM</option>
-            <option value="car">CAR</option>
-          </optgroup>
-          <optgroup label="East Pacific">
-            <option value="epac">EPAC</option>
-            <option value="epac2">EPAC2</option>
-            <option value="cpac">CPAC</option>
-            <option value="tpac">TPAC</option>
-          </optgroup>
-          <optgroup label="West Pacific">
-            <option value="wpac">WPAC</option>
-            <option value="wpac2">WPAC2</option>
-          </optgroup>
-          <optgroup label="Indian Ocean">
-            <option value="io">IO</option>
-            <option value="bob">BOB</option>
-            <option value="arb">ARB</option>
-          </optgroup>
-          <optgroup label="Pacific Basin">
-            <option value="npac">NPAC</option>
-            <option value="enso">ENSO</option>
-          </optgroup>
+          <option value="">loading...</option>
         </select>
       </div>
       <div class="field">
@@ -3160,6 +3134,22 @@
       setDone('em', btn);
     } catch (e) { setError('em', btn, e.message); }
   }
+
+  // ── OISST region list (fetched from API) ─────────────────────────────────
+  fetch(`${API_BASE}/regions`)
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('oi-region');
+      sel.innerHTML = '';
+      data.regions.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.toLowerCase();
+        opt.textContent = r;
+        if (r === 'NATL') opt.selected = true;
+        sel.appendChild(opt);
+      });
+    })
+    .catch(() => {});
 
   // ── OISST ────────────────────────────────────────────────────────────────
 

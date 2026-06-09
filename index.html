@@ -1729,6 +1729,7 @@
       <div id="lmi-cvar-wrap" style="display:none;margin-top:.5rem;text-align:center">
         <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">COLORBAR:</label>
         <select id="lmi-cvar-sel" class="ref-btn" onchange="rerunLmiWithCvar(this)">
+          <option value="">% density</option>
           <option value="lon">lon</option>
           <option value="lat">lat</option>
           <option value="time">time</option>
@@ -2896,7 +2897,7 @@
       st.textContent = 'done.';
       const wrap = document.getElementById('lmi-cvar-wrap');
       const csel = document.getElementById('lmi-cvar-sel');
-      csel.value = cvar || varName;
+      csel.value = cvar || '';
       wrap.style.display = '';
     } catch (e) { st.textContent = 'error: ' + e.message; }
   }

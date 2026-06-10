@@ -100,6 +100,8 @@
     #em-anomaly.active:hover { background: #333 !important; }
     #em-contour.active { background: #111 !important; color: #fff !important; }
     #em-contour.active:hover { background: #333 !important; }
+    #an-sd.active { background: #111 !important; color: #fff !important; }
+    #an-sd.active:hover { background: #333 !important; }
     .cbar-advanced { display: none; }
     .cbar-advanced.open { display: contents; }
 
@@ -1172,6 +1174,16 @@
         <label>YEARS</label>
         <input id="an-years" type="text" placeholder="1997,2005,2010" />
         <span class="hint">comma-separated</span>
+      </div>
+      <button type="button" onclick="document.getElementById('an-adv').classList.toggle('open');this.textContent=document.getElementById('an-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="an-adv" class="cbar-advanced">
+        <button id="an-sd" type="button" class="active" onclick="this.classList.toggle('active')"
+                style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer;align-self:flex-start">STANDARDIZE</button>
       </div>
       <button class="submit" onclick="runAceanom()">run</button>
       <div class="status" id="an-status"></div>
@@ -3665,6 +3677,7 @@
       const data = await callAPI('/aceanom', {
         basin: val('an-basin') || 'NA',
         years: val('an-years'),
+        sd:    document.getElementById('an-sd').classList.contains('active'),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       setStatus('an', 'success', 'done');

@@ -1157,6 +1157,26 @@
       <div class="status" id="ac-status"></div>
     </div>
 
+    <div class="param-panel" id="params-aceanom">
+      <div class="param-title">Daily ACE</div>
+      <div class="param-desc">Distribution of seasonal ACE by day-of-year, normalized and compared against a fixed climatology.</div>
+      <div class="field">
+        <label>BASIN</label>
+        <select id="an-basin" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
+          <option value="NA">Atlantic (NA)</option>
+          <option value="EP">East Pacific (EP)</option>
+          <option value="WP">West Pacific (WP)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>YEARS</label>
+        <input id="an-years" type="text" placeholder="1997,2005,2010" />
+        <span class="hint">comma-separated</span>
+      </div>
+      <button class="submit" onclick="runAceanom()">run</button>
+      <div class="status" id="an-status"></div>
+    </div>
+
     <div class="param-panel" id="params-pca">
       <div class="param-title">ERSST PCA / EOF</div>
       <div class="param-desc">Empirical Orthogonal Function analysis of ERSSTv5 SST anomalies. Returns the PC timeseries for the selected EOF, detrended and z-scored.</div>
@@ -1685,6 +1705,7 @@
           <button class="tab-btn" data-tab="era5m">ERA5 Monthly</button>
           <button class="tab-btn" data-tab="20cr">20CR</button>
           <button class="tab-btn" data-tab="ace">ACE</button>
+          <button class="tab-btn" data-tab="aceanom">Daily ACE</button>
           <button class="tab-btn" data-tab="icoads">ICOADS</button>
           <button class="tab-btn" data-tab="gridded-ace">ACE DENSITY</button>
         </div>
@@ -3635,6 +3656,20 @@
       setStatus('ga', 'success', 'done');
       btn.disabled = false;
     } catch (e) { setError('ga', btn, e.message); }
+  }
+
+  async function runAceanom() {
+    const btn = event.target;
+    setLoading('an', btn);
+    try {
+      const data = await callAPI('/aceanom', {
+        basin: val('an-basin') || 'NA',
+        years: val('an-years'),
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      setStatus('an', 'success', 'done');
+      btn.disabled = false;
+    } catch (e) { setError('an', btn, e.message); }
   }
 
   async function runIcoads() {

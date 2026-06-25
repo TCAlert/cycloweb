@@ -1750,8 +1750,8 @@
         <a id="link-extra" href="#" target="_blank" style="display:none"></a>
       </div>
       <div id="corr-region-wrap" style="display:none;margin-top:.5rem;text-align:center">
-        <input id="corr-region-input" type="text" placeholder="NATL"
-               style="font-family:inherit;font-size:9px;width:4rem;border:1px solid #aaa;padding:.1rem .2rem;margin-right:.3rem" />
+        <select id="corr-region-input"
+                style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;margin-right:.3rem;cursor:pointer"></select>
         <button type="button" onclick="redrawCorrRegion(this)"
                 style="font-family:inherit;font-size:9px;letter-spacing:.04em;
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
@@ -3225,6 +3225,17 @@
         if (r === 'NATL') opt.selected = true;
         sel.appendChild(opt);
       });
+      const csel = document.getElementById('corr-region-input');
+      if (csel) {
+        csel.innerHTML = '';
+        data.regions.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r;
+          if (r === 'NATL') opt.selected = true;
+          csel.appendChild(opt);
+        });
+      }
     })
     .catch(() => {});
 

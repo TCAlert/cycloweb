@@ -1749,6 +1749,15 @@
         <a id="link-img"  href="#" target="_blank">open image</a>
         <a id="link-extra" href="#" target="_blank" style="display:none"></a>
       </div>
+      <div id="corr-region-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <input id="corr-region-input" type="text" placeholder="NATL"
+               style="font-family:inherit;font-size:9px;width:4rem;border:1px solid #aaa;padding:.1rem .2rem;margin-right:.3rem" />
+        <button type="button" onclick="redrawCorrRegion(this)"
+                style="font-family:inherit;font-size:9px;letter-spacing:.04em;
+                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
+                       cursor:pointer">REDRAW REGION</button>
+        <span class="status" id="corr-region-status" style="font-size:9px;margin-left:.3rem"></span>
+      </div>
       <div id="series-cvar-wrap" style="display:none;margin-top:.5rem;text-align:center">
         <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">COLORBAR:</label>
         <select id="series-cvar-sel" class="ref-btn" onchange="rerunSeriesWithCvar(this)">
@@ -2703,6 +2712,7 @@
     document.getElementById('img-placeholder').style.display = 'none';
     document.getElementById('series-cvar-wrap').style.display = 'none';
     document.getElementById('track-gridded-wrap').style.display = 'none';
+    document.getElementById('corr-region-wrap').style.display = 'none';
     const img = document.getElementById('result-img');
     img.src = imgUrl;
     img.classList.add('visible');
@@ -3640,11 +3650,30 @@
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }
       const data = await callAPI('/corr', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      const rwrap = document.getElementById('corr-region-wrap');
+      rwrap.style.display = (corrField === 'ersst' || corrField === 'era5') ? '' : 'none';
       statusEl.className = 'status success';
       statusEl.textContent = 'done';
     } catch (e) {
       statusEl.className = 'status error';
       statusEl.textContent = e.message;
+    }
+    btn.disabled = false;
+  }
+
+  async function redrawCorrRegion(btn) {
+    const region = document.getElementById('corr-region-input').value.trim();
+    const statusEl = document.getElementById('corr-region-status');
+    if (!region) { statusEl.className = 'status error'; statusEl.textContent = 'enter a region'; return; }
+    statusEl.className = 'status loading'; statusEl.textContent = 'working...';
+    btn.disabled = true;
+    try {
+      const data = await callAPI('/corr/redraw', { region });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      document.getElementById('corr-region-wrap').style.display = '';
+      statusEl.className = 'status success'; statusEl.textContent = 'done';
+    } catch (e) {
+      statusEl.className = 'status error'; statusEl.textContent = e.message;
     }
     btn.disabled = false;
   }

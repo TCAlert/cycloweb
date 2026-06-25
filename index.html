@@ -1841,11 +1841,17 @@
             <option value="sst">SST</option>
             <option value="hgt">HGT</option>
             <option value="ace">ACE</option>
+            <option value="era5:shear">ERA5 Shear</option>
+            <option value="era5:uwnd">ERA5 U-wind</option>
+            <option value="era5:hgt">ERA5 Hgt</option>
+            <option value="era5:rh">ERA5 RH</option>
+            <option value="era5:thetae">ERA5 θe</option>
           </select>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('bottom')">bottom 10 →</button>
           <span class="status" id="et-composite-status" style="font-size:9px"></span>
           <input id="et-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <input id="et-corr-level" type="text" placeholder="lvl" maxlength="4" style="width:2.8rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <select id="et-corr-dtype" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
             <option value="ACE">ACE</option>
             <option value="TCG">TCG</option>
@@ -1879,11 +1885,17 @@
             <option value="sst">SST</option>
             <option value="hgt">HGT</option>
             <option value="ace">ACE</option>
+            <option value="era5:shear">ERA5 Shear</option>
+            <option value="era5:uwnd">ERA5 U-wind</option>
+            <option value="era5:hgt">ERA5 Hgt</option>
+            <option value="era5:rh">ERA5 RH</option>
+            <option value="era5:thetae">ERA5 θe</option>
           </select>
           <button class="ace-ersst-btn" onclick="aceToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="aceToComposite('bottom')">bottom 10 →</button>
           <span class="status" id="ac-composite-status" style="font-size:9px"></span>
           <input id="ac-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <input id="ac-corr-level" type="text" placeholder="lvl" maxlength="4" style="width:2.8rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <select id="ac-corr-dtype" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
             <option value="ACE">ACE</option>
             <option value="TCG">TCG</option>
@@ -1917,11 +1929,17 @@
             <option value="sst">SST</option>
             <option value="hgt">HGT</option>
             <option value="ace">ACE</option>
+            <option value="era5:shear">ERA5 Shear</option>
+            <option value="era5:uwnd">ERA5 U-wind</option>
+            <option value="era5:hgt">ERA5 Hgt</option>
+            <option value="era5:rh">ERA5 RH</option>
+            <option value="era5:thetae">ERA5 θe</option>
           </select>
           <button class="ace-ersst-btn" onclick="pcaToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="pcaToComposite('bottom')">bottom 10 →</button>
           <span class="status" id="pca-composite-status" style="font-size:9px"></span>
           <input id="pca-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <input id="pca-corr-level" type="text" placeholder="lvl" maxlength="4" style="width:2.8rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
           <select id="pca-corr-dtype" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
             <option value="ACE">ACE</option>
             <option value="TCG">TCG</option>
@@ -3291,6 +3309,11 @@
   function ersstTsToComposite(which) {
     const years = (which === 'top' ? _etTop10 : _etBottom10).join(',');
     const type = document.getElementById('et-composite-type').value;
+    if (type.startsWith('era5:')) {
+      const s = document.getElementById('et-composite-status');
+      s.className = 'status error'; s.textContent = 'ERA5 is correlation-only';
+      return;
+    }
     if (type === 'hgt') {
       run20crInline(years, val('et-month'), 'et');
     } else if (type === 'ace') {
@@ -3464,6 +3487,11 @@
   function aceToComposite(which) {
     const years = (which === 'top' ? _aceTop10 : _aceBottom10).join(',');
     const type = document.getElementById('ac-composite-type').value;
+    if (type.startsWith('era5:')) {
+      const s = document.getElementById('ac-composite-status');
+      s.className = 'status error'; s.textContent = 'ERA5 is correlation-only';
+      return;
+    }
     if (type === 'hgt') {
       run20crInline(years, document.getElementById('ac-corr-month').value.trim(), 'ac');
     } else if (type === 'ace') {
@@ -3477,6 +3505,11 @@
   function pcaToComposite(which) {
     const years = (which === 'top' ? _pcaTop10 : _pcaBottom10).join(',');
     const type = document.getElementById('pca-composite-type').value;
+    if (type.startsWith('era5:')) {
+      const s = document.getElementById('pca-composite-status');
+      s.className = 'status error'; s.textContent = 'ERA5 is correlation-only';
+      return;
+    }
     if (type === 'hgt') {
       run20crInline(years, document.getElementById('pca-corr-month').value.trim(), 'pca');
     } else if (type === 'ace') {
@@ -3555,7 +3588,17 @@
         return;
       }
       const typeDropId = source === 'ersst-ts' ? 'et-composite-type' : source === 'pca' ? 'pca-composite-type' : 'ac-composite-type';
-      const corrField  = document.getElementById(typeDropId)?.value === 'ace' ? 'ace' : 'ersst';
+      const typeVal    = document.getElementById(typeDropId)?.value || '';
+      const corrField  = typeVal.startsWith('era5:') ? 'era5' : (typeVal === 'ace' ? 'ace' : 'ersst');
+      const eraVar     = corrField === 'era5' ? typeVal.slice(5) : null;
+      const levelId    = source === 'ersst-ts' ? 'et-corr-level' : source === 'pca' ? 'pca-corr-level' : 'ac-corr-level';
+      const eraLevel   = document.getElementById(levelId)?.value?.trim() || '';
+      if (corrField === 'era5' && eraVar !== 'shear' && !eraLevel) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'enter a level';
+        btn.disabled = false;
+        return;
+      }
       const params = {
         csv:        series.join(','),
         corr_month: corrMonth,
@@ -3573,6 +3616,10 @@
       if (corrField === 'ace') {
         const dtypeId = source === 'ersst-ts' ? 'et-corr-dtype' : source === 'pca' ? 'pca-corr-dtype' : 'ac-corr-dtype';
         params.dtype = document.getElementById(dtypeId)?.value || 'ACE';
+      }
+      if (corrField === 'era5') {
+        params.var = eraVar;
+        if (eraLevel) { params.level = eraLevel; }
       }
       if (lat1 && lat2) { params.lat1 = lat1; params.lat2 = lat2; }
       if (lon1 && lon2) { params.lon1 = lon1; params.lon2 = lon2; }

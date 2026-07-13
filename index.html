@@ -1415,6 +1415,11 @@
           <option value="hgt">hgt</option>
           <option value="rh">rh</option>
           <option value="thetae">thetae</option>
+          <option value="temp">temp</option>
+          <option value="pv">pv</option>
+          <option value="mslp">mslp</option>
+          <option value="precip">precip</option>
+          <option value="olr">olr</option>
         </select>
       </div>
       <div class="field">
@@ -1524,6 +1529,25 @@
           <label>END YEAR</label>
           <input id="oi-end" type="text" placeholder="2025" maxlength="4" class="optional" />
           <span class="hint">climo end</span>
+        </div>
+        <div style="margin-top:.4rem;font-size:9px;letter-spacing:.04em;color:#555;font-weight:bold">CUSTOM EXTENT (overrides region)</div>
+        <div class="field">
+          <label>WEST LON</label>
+          <input id="oi-lon1" type="text" placeholder="-140" class="optional" />
+          <span class="hint">negative = west of prime meridian</span>
+        </div>
+        <div class="field">
+          <label>EAST LON</label>
+          <input id="oi-lon2" type="text" placeholder="-80" class="optional" />
+        </div>
+        <div class="field">
+          <label>SOUTH LAT</label>
+          <input id="oi-lat1" type="text" placeholder="0" class="optional" />
+          <span class="hint">negative = southern hemisphere</span>
+        </div>
+        <div class="field">
+          <label>NORTH LAT</label>
+          <input id="oi-lat2" type="text" placeholder="30" class="optional" />
         </div>
       </div>
       <button class="submit" onclick="runOisst()">run</button>
@@ -1788,6 +1812,7 @@
             <option value="era5:pv">ERA5 PV</option>
             <option value="era5:mslp">ERA5 MSLP</option>
             <option value="era5:precip">ERA5 Precip</option>
+            <option value="era5:olr">ERA5 OLR</option>
           </select>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="ersstTsToComposite('bottom')">bottom 10 →</button>
@@ -1837,6 +1862,7 @@
             <option value="era5:pv">ERA5 PV</option>
             <option value="era5:mslp">ERA5 MSLP</option>
             <option value="era5:precip">ERA5 Precip</option>
+            <option value="era5:olr">ERA5 OLR</option>
           </select>
           <button class="ace-ersst-btn" onclick="aceToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="aceToComposite('bottom')">bottom 10 →</button>
@@ -1886,6 +1912,7 @@
             <option value="era5:pv">ERA5 PV</option>
             <option value="era5:mslp">ERA5 MSLP</option>
             <option value="era5:precip">ERA5 Precip</option>
+            <option value="era5:olr">ERA5 OLR</option>
           </select>
           <button class="ace-ersst-btn" onclick="pcaToComposite('top')">top 10 →</button>
           <button class="ace-ersst-btn" onclick="pcaToComposite('bottom')">bottom 10 →</button>
@@ -3146,6 +3173,10 @@
     .then(data => {
       const sel = document.getElementById('oi-region');
       sel.innerHTML = '';
+      const oiCustom = document.createElement('option');
+      oiCustom.value = 'custom';
+      oiCustom.textContent = 'custom (set extent below)';
+      sel.appendChild(oiCustom);
       data.regions.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.toLowerCase();
@@ -3228,6 +3259,10 @@
         isotherm:   val('oi-isotherm'),
         start_year: val('oi-start'),
         end_year:   val('oi-end'),
+        lon1:       val('oi-lon1'),
+        lon2:       val('oi-lon2'),
+        lat1:       val('oi-lat1'),
+        lat2:       val('oi-lat2'),
       });
       showImage(API_BASE + data.contour_url + '?t=' + Date.now(), null, null);
       const envBtn = document.getElementById('oi-envelope-btn');
@@ -3601,7 +3636,7 @@
       const eraVar     = corrField === 'era5' ? typeVal.slice(5) : null;
       const levelId    = source === 'ersst-ts' ? 'et-corr-level' : source === 'pca' ? 'pca-corr-level' : 'ac-corr-level';
       const eraLevel   = document.getElementById(levelId)?.value?.trim() || '';
-      if (corrField === 'era5' && !['shear', 'mslp', 'precip'].includes(eraVar) && !eraLevel) {
+      if (corrField === 'era5' && !['shear', 'mslp', 'precip', 'olr'].includes(eraVar) && !eraLevel) {
         statusEl.className = 'status error';
         statusEl.textContent = 'enter a level';
         btn.disabled = false;

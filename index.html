@@ -1831,6 +1831,8 @@
           </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('ersst-ts')">→ Corr</button>
           <span class="status" id="et-corr-status" style="font-size:9px"></span>
+          <button class="ace-ersst-btn" onclick="runTsAnalysis('ersst-ts')">→ Analyze</button>
+          <span class="status" id="et-analysis-status" style="font-size:9px"></span>
         </div>
         <div class="ace-table-wrap">
           <table class="ace-table">
@@ -1881,6 +1883,8 @@
           </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('ace')">→ Corr</button>
           <span class="status" id="ac-corr-status" style="font-size:9px"></span>
+          <button class="ace-ersst-btn" onclick="runTsAnalysis('ace')">→ Analyze</button>
+          <span class="status" id="ac-analysis-status" style="font-size:9px"></span>
         </div>
         <div class="ace-table-wrap">
           <table class="ace-table">
@@ -1931,6 +1935,8 @@
           </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('pca')">→ Corr</button>
           <span class="status" id="pca-corr-status" style="font-size:9px"></span>
+          <button class="ace-ersst-btn" onclick="runTsAnalysis('pca')">→ Analyze</button>
+          <span class="status" id="pca-analysis-status" style="font-size:9px"></span>
         </div>
         <div class="ace-table-wrap">
           <table class="ace-table">
@@ -3670,6 +3676,62 @@
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       const rwrap = document.getElementById('corr-region-wrap');
       rwrap.style.display = (corrField === 'ersst' || corrField === 'era5') ? '' : 'none';
+      statusEl.className = 'status success';
+      statusEl.textContent = 'done';
+    } catch (e) {
+      statusEl.className = 'status error';
+      statusEl.textContent = e.message;
+    }
+    btn.disabled = false;
+  }
+
+  // ── Timeseries analysis (4-panel: trend, regression, histogram, wavelet) ──
+
+  async function runTsAnalysis(source) {
+    const btn      = event.target;
+    const statusId = source === 'ersst-ts' ? 'et-analysis-status' : source === 'pca' ? 'pca-analysis-status' : 'ac-analysis-status';
+    const statusEl = document.getElementById(statusId);
+    let rows, valueKey, title, label, subtitle = '';
+    if (source === 'ersst-ts') {
+      rows     = _etData;
+      valueKey = 'anom';
+      title    = 'ERSSTv5 SST Anomaly Timeseries';
+      label    = 'SST Anomaly (°C)';
+      subtitle = monthName(val('et-month')) || '';
+    } else if (source === 'pca') {
+      rows     = _pcaData;
+      valueKey = 'pc';
+      title    = `ERSSTv5 EOF${val('pca-eof') || '1'} Principal Component`;
+      label    = 'PC Value';
+    } else {
+      rows     = _aceData;
+      valueKey = 'ace';
+      const basin = (val('ac-basin') || 'AL').toUpperCase();
+      const box   = val('ac-lat1') && val('ac-lat2') && val('ac-lon1') && val('ac-lon2');
+      title = `${basin} Accumulated Cyclone Energy${box ? ' in Box' : ''}`;
+      label = 'ACE (10⁴ kt²)';
+      const aceDay  = document.getElementById('ac-day')?.value?.trim();
+      const aceDay2 = document.getElementById('ac-day2')?.value?.trim();
+      if (aceDay && aceDay2)  subtitle = `${formatDayLabel(aceDay2)} – ${formatDayLabel(aceDay)}`;
+      else if (aceDay)        subtitle = `thru ${formatDayLabel(aceDay)}`;
+    }
+    if (!rows || !rows.length) {
+      statusEl.className = 'status error';
+      statusEl.textContent = 'run a timeseries first';
+      return;
+    }
+    statusEl.className = 'status loading';
+    statusEl.textContent = 'working...';
+    btn.disabled = true;
+    try {
+      const sorted = [...rows].sort((a, b) => a.year - b.year);
+      const data = await callAPI('/ts-analysis', {
+        csv:        sorted.map(r => r[valueKey]).join(','),
+        start_year: String(sorted[0].year),
+        title, label, subtitle,
+      });
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      switchView('output');
       statusEl.className = 'status success';
       statusEl.textContent = 'done';
     } catch (e) {

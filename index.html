@@ -1831,6 +1831,10 @@
           </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('ersst-ts')">→ Corr</button>
           <span class="status" id="et-corr-status" style="font-size:9px"></span>
+          <select id="et-analysis-scope" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="month">Sel. Month</option>
+            <option value="all">All Months</option>
+          </select>
           <button class="ace-ersst-btn" onclick="runTsAnalysis('ersst-ts')">→ Analyze</button>
           <span class="status" id="et-analysis-status" style="font-size:9px"></span>
         </div>
@@ -1935,6 +1939,10 @@
           </select>
           <button class="ace-ersst-btn" onclick="runCorrInline('pca')">→ Corr</button>
           <span class="status" id="pca-corr-status" style="font-size:9px"></span>
+          <select id="pca-analysis-scope" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="year">Yearly</option>
+            <option value="all">All Months</option>
+          </select>
           <button class="ace-ersst-btn" onclick="runTsAnalysis('pca')">→ Analyze</button>
           <span class="status" id="pca-analysis-status" style="font-size:9px"></span>
         </div>
@@ -3294,6 +3302,7 @@
   let _etData    = [];
   let _etTop10   = [];
   let _etBottom10 = [];
+  let _etMonthly = [];   // flat Jan..Dec per year, year-ascending; null = unpublished
   let _etSortCol = 'rank';
   let _etSortAsc = true;
 
@@ -3341,6 +3350,7 @@
       _etData     = data.years;
       _etTop10    = data.top10;
       _etBottom10 = data.bottom10;
+      _etMonthly  = data.monthly || [];
       _etSortCol  = 'rank';
       _etSortAsc  = true;
       document.getElementById('et-sort-rank').textContent = ' ▲';
@@ -3466,6 +3476,8 @@
   let _pcaData    = [];
   let _pcaTop10   = [];
   let _pcaBottom10 = [];
+  let _pcaMonthly = [];   // flat PC series, months-per-year points per year, year-ascending
+  let _pcaMonthsN = 12;
   let _pcaSortCol = 'rank';
   let _pcaSortAsc = true;
 
@@ -3520,6 +3532,8 @@
       _pcaData     = data.years.map(r => sorted.find(s => s.year === r.year));
       _pcaTop10    = data.top10;
       _pcaBottom10 = data.bottom10;
+      _pcaMonthly  = data.monthly || [];
+      _pcaMonthsN  = data.months_per_year || 12;
       _pcaSortCol = 'rank';
       _pcaSortAsc = true;
       document.getElementById('pca-sort-rank').textContent = ' ▲';
@@ -3691,18 +3705,38 @@
     const btn      = event.target;
     const statusId = source === 'ersst-ts' ? 'et-analysis-status' : source === 'pca' ? 'pca-analysis-status' : 'ac-analysis-status';
     const statusEl = document.getElementById(statusId);
-    let rows, valueKey, title, label, subtitle = '';
+    let rows, valueKey, title, label, subtitle = '', csv = null, n = 1;
     if (source === 'ersst-ts') {
       rows     = _etData;
       valueKey = 'anom';
       title    = 'ERSSTv5 SST Anomaly Timeseries';
       label    = 'SST Anomaly (°C)';
       subtitle = monthName(val('et-month')) || '';
+      if (document.getElementById('et-analysis-scope')?.value === 'all') {
+        if (!_etMonthly.length) {
+          statusEl.className = 'status error';
+          statusEl.textContent = 'run a timeseries first';
+          return;
+        }
+        csv      = _etMonthly.map(v => v == null ? 'NaN' : v).join(',');
+        n        = 12;
+        subtitle = 'All Months';
+      }
     } else if (source === 'pca') {
       rows     = _pcaData;
       valueKey = 'pc';
       title    = `ERSSTv5 EOF${val('pca-eof') || '1'} Principal Component`;
       label    = 'PC Value';
+      if (document.getElementById('pca-analysis-scope')?.value === 'all') {
+        if (!_pcaMonthly.length) {
+          statusEl.className = 'status error';
+          statusEl.textContent = 'run a timeseries first';
+          return;
+        }
+        csv      = _pcaMonthly.join(',');
+        n        = _pcaMonthsN;
+        subtitle = _pcaMonthsN === 12 ? 'All Months' : 'Selected Months';
+      }
     } else {
       rows     = _aceData;
       valueKey = 'ace';
@@ -3726,9 +3760,10 @@
     try {
       const sorted = [...rows].sort((a, b) => a.year - b.year);
       const data = await callAPI('/ts-analysis', {
-        csv:        sorted.map(r => r[valueKey]).join(','),
+        csv:        csv || sorted.map(r => r[valueKey]).join(','),
         start_year: String(sorted[0].year),
         title, label, subtitle,
+        n:          String(n),
       });
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
       switchView('output');

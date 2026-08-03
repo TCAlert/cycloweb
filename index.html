@@ -1115,6 +1115,67 @@
       <div class="status" id="et-status"></div>
     </div>
 
+    <div class="param-panel" id="params-era5-ts">
+      <div class="param-title">ERA5 Timeseries</div>
+      <div class="param-desc">0.25° ERA5 area-averaged monthly anomaly timeseries via CDS API. Cosine-weighted over the box, one bar per year. Click column headers to sort.</div>
+      <div class="field">
+        <label>VARIABLE</label>
+        <select id="ets-var" style="font-family:inherit;font-size:13px;border:1px solid #999;padding:.25rem .35rem;background:#fff;width:100%;color:#111">
+          <option value="shear">shear</option>
+          <option value="uwnd">uwnd</option>
+          <option value="hgt">hgt</option>
+          <option value="rh">rh</option>
+          <option value="thetae">thetae</option>
+          <option value="temp">temp</option>
+          <option value="pv">pv</option>
+          <option value="mslp">mslp</option>
+          <option value="precip">precip</option>
+          <option value="olr">olr</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>MONTH</label>
+        <input id="ets-month" type="text" placeholder="9" maxlength="3" />
+        <span class="hint">1–12</span>
+      </div>
+      <div class="field">
+        <label>START YEAR</label>
+        <input id="ets-start" type="text" placeholder="1979" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>END YEAR</label>
+        <input id="ets-end" type="text" placeholder="2025" maxlength="4" />
+      </div>
+      <div class="field">
+        <label>LAT BOUNDS</label>
+        <input id="ets-lat1" type="text" placeholder="5" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="ets-lat2" type="text" placeholder="27.5" style="width:3.5rem" />
+        <span class="hint">S to N</span>
+      </div>
+      <div class="field">
+        <label>LON BOUNDS</label>
+        <input id="ets-lon1" type="text" placeholder="-65" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="ets-lon2" type="text" placeholder="-15" style="width:3.5rem" />
+        <span class="hint">W to E, negative = west</span>
+      </div>
+      <div class="field">
+        <label>LEVEL</label>
+        <input id="ets-level" type="text" placeholder="850" class="optional" />
+        <span class="hint">hPa — optional</span>
+      </div>
+      <div class="field">
+        <label>CLIMATOLOGY</label>
+        <input id="ets-climo1" type="text" placeholder="1991" maxlength="4" class="optional" style="width:3.5rem" />
+        <span style="padding:0 .2rem">–</span>
+        <input id="ets-climo2" type="text" placeholder="2020" maxlength="4" class="optional" style="width:3.5rem" />
+        <span class="hint">base period — optional</span>
+      </div>
+      <button class="submit" onclick="runEra5Ts()">run</button>
+      <div class="status" id="ets-status"></div>
+    </div>
+
     <div class="param-panel" id="params-ace">
       <div class="param-title">ACE Timeseries</div>
       <div class="param-desc">Accumulated Cyclone Energy by year. Click column headers to sort. Top/bottom 10 years link to ERSST composite.</div>
@@ -1667,6 +1728,7 @@
         <div class="tab-dropdown-menu">
           <button class="tab-btn" data-tab="era5">ERA5</button>
           <button class="tab-btn" data-tab="era5m">ERA5 Monthly</button>
+          <button class="tab-btn" data-tab="era5-ts">ERA5 TS</button>
           <button class="tab-btn" data-tab="20cr">20CR</button>
           <button class="tab-btn" data-tab="ace">ACE</button>
           <button class="tab-btn" data-tab="aceanom">Daily ACE</button>
@@ -1848,6 +1910,58 @@
               </tr>
             </thead>
             <tbody id="ersst-ts-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="ace-output-wrap" id="era5-ts-output-wrap">
+        <div class="ace-ersst-btns">
+          <select id="ets-composite-type" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="sst">SST</option>
+            <option value="hgt">HGT</option>
+            <option value="ace">ACE</option>
+            <option value="era5:shear">ERA5 Shear</option>
+            <option value="era5:uwnd">ERA5 U-wind</option>
+            <option value="era5:hgt">ERA5 Hgt</option>
+            <option value="era5:rh">ERA5 RH</option>
+            <option value="era5:thetae">ERA5 θe</option>
+            <option value="era5:temp">ERA5 Temp</option>
+            <option value="era5:vort">ERA5 Vort</option>
+            <option value="era5:pv">ERA5 PV</option>
+            <option value="era5:mslp">ERA5 MSLP</option>
+            <option value="era5:precip">ERA5 Precip</option>
+            <option value="era5:olr">ERA5 OLR</option>
+          </select>
+          <button class="ace-ersst-btn" onclick="era5TsToComposite('top')">top 10 →</button>
+          <button class="ace-ersst-btn" onclick="era5TsToComposite('bottom')">bottom 10 →</button>
+          <span class="status" id="ets-composite-status" style="font-size:9px"></span>
+          <input id="ets-corr-month" type="text" placeholder="mo" maxlength="2" style="width:2.4rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <input id="ets-corr-level" type="text" placeholder="lvl" maxlength="4" style="width:2.8rem;font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem" />
+          <select id="ets-corr-dtype" class="ace-ersst-btn" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.1rem .2rem;cursor:pointer">
+            <option value="ACE">ACE</option>
+            <option value="TCG">TCG</option>
+            <option value="LMI">LMI</option>
+            <option value="LMI_C">LMI (count)</option>
+            <option value="RI">RI</option>
+            <option value="DV24">ΔV 24hr</option>
+            <option value="SPEED">Speed</option>
+            <option value="BEARING">Bearing</option>
+          </select>
+          <button class="ace-ersst-btn" onclick="runCorrInline('era5-ts')">→ Corr</button>
+          <span class="status" id="ets-corr-status" style="font-size:9px"></span>
+          <button class="ace-ersst-btn" onclick="runTsAnalysis('era5-ts')">→ Analyze</button>
+          <span class="status" id="ets-analysis-status" style="font-size:9px"></span>
+        </div>
+        <div class="ace-table-wrap">
+          <table class="ace-table">
+            <thead>
+              <tr>
+                <th onclick="sortEra5Ts('rank')">Rank <span id="ets-sort-rank"></span></th>
+                <th onclick="sortEra5Ts('year')">Year <span id="ets-sort-year"></span></th>
+                <th onclick="sortEra5Ts('anom')">Anomaly <span id="ets-sort-anom"></span></th>
+              </tr>
+            </thead>
+            <tbody id="era5-ts-table-body"></tbody>
           </table>
         </div>
       </div>
@@ -2559,7 +2673,7 @@
       activeTab = btn.dataset.tab;
       if (activeTab === 'ships-lsdiag') loadShipsStorms();
       // Sync ref panel to active tool
-      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', metar: 'ref-metar', radar: 'ref-radar', oisst: 'ref-ersst' };
+      const refMap = { hafs: 'ref-hafs', tcprimed: 'ref-tcprimed', adeck: 'ref-adeck', shipsri: 'ref-shipsri', 'ships-lsdiag': 'ref-ships-lsdiag', hrrr: 'ref-hrrr', ersst: 'ref-ersst', '20cr': 'ref-20cr', 'ersst-ts': 'ref-ersst', ace: 'ref-ersst', pca: 'ref-ersst', era5: 'ref-era5', era5m: 'ref-era5', 'era5-ts': 'ref-era5', metar: 'ref-metar', radar: 'ref-radar', oisst: 'ref-ersst' };
       const refId = refMap[activeTab] || 'ref-satellite';
       document.querySelectorAll('.ref-panel').forEach(p => p.classList.remove('active'));
       document.getElementById(refId).classList.add('active');
@@ -2620,7 +2734,7 @@
   const viewRef    = document.getElementById('view-ref');
 
   function hideAllTables() {
-    ['icoads-output-wrap','gdmi-output-wrap','fdeck-output-wrap','adeck-table-wrap','ersst-ts-output-wrap','ace-output-wrap','pca-output-wrap'].forEach(id => {
+    ['icoads-output-wrap','gdmi-output-wrap','fdeck-output-wrap','adeck-table-wrap','ersst-ts-output-wrap','era5-ts-output-wrap','ace-output-wrap','pca-output-wrap'].forEach(id => {
       document.getElementById(id).classList.remove('visible');
     });
   }
@@ -3400,6 +3514,118 @@
     }
   }
 
+  // ── ERA5 Timeseries ──────────────────────────────────────────────────────
+
+  // display name + y-axis label per variable, used by the corr and analysis handoffs
+  const ETS_LABELS = {
+    shear:  ['Deep-Layer Shear',              'Shear Anomaly (kt)'],
+    uwnd:   ['Zonal Wind',                    'U Anomaly (kt)'],
+    hgt:    ['Geopotential Height',           'Height Anomaly (dm)'],
+    rh:     ['Relative Humidity',             'RH Anomaly (%)'],
+    thetae: ['Equivalent Potential Temp',     'θe Anomaly (K)'],
+    temp:   ['Temperature',                   'Temp Anomaly (K)'],
+    pv:     ['Potential Vorticity',           'PV Anomaly (PVU)'],
+    mslp:   ['Mean Sea Level Pressure',       'MSLP Anomaly (hPa)'],
+    precip: ['Total Precipitation',           'Precip Anomaly (cm)'],
+    olr:    ['Outgoing Longwave Radiation',   'OLR Anomaly (J/m²)'],
+  };
+
+  function etsBoxLabel() {
+    const la1 = val('ets-lat1'), la2 = val('ets-lat2'), lo1 = val('ets-lon1'), lo2 = val('ets-lon2');
+    return (la1 && la2 && lo1 && lo2) ? `${la1}N to ${la2}N, ${lo1}E to ${lo2}E` : '';
+  }
+
+  let _etsData     = [];
+  let _etsTop10    = [];
+  let _etsBottom10 = [];
+  let _etsSortCol  = 'rank';
+  let _etsSortAsc  = true;
+
+  // OLR and geopotential anomalies run orders of magnitude larger than the rest
+  function etsFormat(v) {
+    return Math.abs(v) >= 1000 ? v.toExponential(2) : v.toFixed(2);
+  }
+
+  function renderEra5TsTable() {
+    const rows = [..._etsData].sort((a, b) => {
+      const v = _etsSortAsc ? 1 : -1;
+      return a[_etsSortCol] < b[_etsSortCol] ? -v : a[_etsSortCol] > b[_etsSortCol] ? v : 0;
+    });
+    const top10Set    = new Set(_etsTop10);
+    const bottom10Set = new Set(_etsBottom10);
+    document.getElementById('era5-ts-table-body').innerHTML = rows.map(r => {
+      const cls = top10Set.has(r.year) ? 'ace-top' : bottom10Set.has(r.year) ? 'ace-bot' : '';
+      return `<tr class="${cls}"><td>${r.rank}</td><td>${r.year}</td><td>${etsFormat(r.anom)}</td></tr>`;
+    }).join('');
+  }
+
+  function sortEra5Ts(col) {
+    if (_etsSortCol === col) {
+      _etsSortAsc = !_etsSortAsc;
+    } else {
+      _etsSortCol = col;
+      _etsSortAsc = col !== 'anom';
+    }
+    ['rank', 'year', 'anom'].forEach(c => {
+      document.getElementById('ets-sort-' + c).textContent =
+        c === _etsSortCol ? (_etsSortAsc ? ' ▲' : ' ▼') : '';
+    });
+    renderEra5TsTable();
+  }
+
+  async function runEra5Ts() {
+    const btn = event.target;
+    setLoading('ets', btn);
+    document.getElementById('era5-ts-output-wrap').classList.remove('visible');
+    try {
+      const data = await callAPI('/era5-ts', {
+        var:        val('ets-var'),
+        month:      val('ets-month'),
+        start_year: val('ets-start'),
+        end_year:   val('ets-end'),
+        lat1:       val('ets-lat1'),
+        lat2:       val('ets-lat2'),
+        lon1:       val('ets-lon1'),
+        lon2:       val('ets-lon2'),
+        level:      val('ets-level'),
+        climo1:     val('ets-climo1'),
+        climo2:     val('ets-climo2'),
+      });
+      _etsData     = data.years;
+      _etsTop10    = data.top10;
+      _etsBottom10 = data.bottom10;
+      _etsSortCol  = 'rank';
+      _etsSortAsc  = true;
+      document.getElementById('ets-sort-rank').textContent = ' ▲';
+      document.getElementById('ets-sort-year').textContent = '';
+      document.getElementById('ets-sort-anom').textContent = '';
+      renderEra5TsTable();
+      hideAllTables();
+      document.getElementById('era5-ts-output-wrap').classList.add('visible');
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+      switchView('table');
+      setDone('ets', btn);
+    } catch (e) { setError('ets', btn, e.message); }
+  }
+
+  function era5TsToComposite(which) {
+    const years = (which === 'top' ? _etsTop10 : _etsBottom10).join(',');
+    const type  = document.getElementById('ets-composite-type').value;
+    if (type.startsWith('era5:')) {
+      const s = document.getElementById('ets-composite-status');
+      s.className = 'status error'; s.textContent = 'ERA5 is correlation-only';
+      return;
+    }
+    if (type === 'hgt') {
+      run20crInline(years, val('ets-month'), 'ets');
+    } else if (type === 'ace') {
+      runGriddedAceInline(years, val('ac-basin') || 'AL', 'ets');
+    } else {
+      document.querySelector('.tab-btn[data-tab="ersst"]').click();
+      document.getElementById('er-years').value = years;
+    }
+  }
+
   // ── ACE ──────────────────────────────────────────────────────────────────
 
   let _aceData = [];     // full row array [{year, ace, rank}]
@@ -3603,8 +3829,9 @@
 
   async function runCorrInline(source) {
     const btn        = event.target;
-    const statusId   = source === 'ersst-ts' ? 'et-corr-status' : source === 'pca' ? 'pca-corr-status' : 'ac-corr-status';
-    const monthId    = source === 'ersst-ts' ? 'et-corr-month'  : source === 'pca' ? 'pca-corr-month'  : 'ac-corr-month';
+    const pfx        = source === 'ersst-ts' ? 'et' : source === 'era5-ts' ? 'ets' : source === 'pca' ? 'pca' : 'ac';
+    const statusId   = `${pfx}-corr-status`;
+    const monthId    = `${pfx}-corr-month`;
     const statusEl   = document.getElementById(statusId);
     statusEl.className = 'status loading';
     statusEl.textContent = 'working...';
@@ -3618,6 +3845,13 @@
         lat1 = val('et-lat1'); lat2 = val('et-lat2');
         lon1 = val('et-lon1'); lon2 = val('et-lon2');
         label = `${monthName(val('et-month'))} ERSST TS`;
+      } else if (source === 'era5-ts') {
+        series    = _etsData.map(r => r.anom);
+        startYear = _etsData[0]?.year ?? '';
+        endYear   = _etsData[_etsData.length - 1]?.year ?? '';
+        lat1 = val('ets-lat1'); lat2 = val('ets-lat2');
+        lon1 = val('ets-lon1'); lon2 = val('ets-lon2');
+        label = `${monthName(val('ets-month'))} ${(ETS_LABELS[val('ets-var')] || [val('ets-var')])[0]} TS`;
       } else if (source === 'pca') {
         series    = _pcaData.map(r => r.pc);
         startYear = val('pca-start');
@@ -3643,18 +3877,18 @@
       }
       const monthInput = document.getElementById(monthId);
       const corrMonth  = monthInput.value.trim() ||
-                         (source === 'ersst-ts' ? val('et-month') : '');
+                         (source === 'ersst-ts' ? val('et-month') : source === 'era5-ts' ? val('ets-month') : '');
       if (!corrMonth) {
         statusEl.className = 'status error';
         statusEl.textContent = 'enter a month';
         btn.disabled = false;
         return;
       }
-      const typeDropId = source === 'ersst-ts' ? 'et-composite-type' : source === 'pca' ? 'pca-composite-type' : 'ac-composite-type';
+      const typeDropId = `${pfx}-composite-type`;
       const typeVal    = document.getElementById(typeDropId)?.value || '';
       const corrField  = typeVal.startsWith('era5:') ? 'era5' : (typeVal === 'ace' ? 'ace' : 'ersst');
       const eraVar     = corrField === 'era5' ? typeVal.slice(5) : null;
-      const levelId    = source === 'ersst-ts' ? 'et-corr-level' : source === 'pca' ? 'pca-corr-level' : 'ac-corr-level';
+      const levelId    = `${pfx}-corr-level`;
       const eraLevel   = document.getElementById(levelId)?.value?.trim() || '';
       if (corrField === 'era5' && !['shear', 'mslp', 'precip', 'olr'].includes(eraVar) && !eraLevel) {
         statusEl.className = 'status error';
@@ -3677,7 +3911,7 @@
         if (aceDay2) { params.day2_label = formatDayLabel(aceDay2); }
       }
       if (corrField === 'ace') {
-        const dtypeId = source === 'ersst-ts' ? 'et-corr-dtype' : source === 'pca' ? 'pca-corr-dtype' : 'ac-corr-dtype';
+        const dtypeId = `${pfx}-corr-dtype`;
         params.dtype = document.getElementById(dtypeId)?.value || 'ACE';
       }
       if (corrField === 'era5') {
@@ -3703,8 +3937,8 @@
 
   async function runTsAnalysis(source) {
     const btn      = event.target;
-    const statusId = source === 'ersst-ts' ? 'et-analysis-status' : source === 'pca' ? 'pca-analysis-status' : 'ac-analysis-status';
-    const statusEl = document.getElementById(statusId);
+    const pfx      = source === 'ersst-ts' ? 'et' : source === 'era5-ts' ? 'ets' : source === 'pca' ? 'pca' : 'ac';
+    const statusEl = document.getElementById(`${pfx}-analysis-status`);
     let rows, valueKey, title, label, subtitle = '', csv = null, n = 1;
     if (source === 'ersst-ts') {
       rows     = _etData;
@@ -3722,6 +3956,14 @@
         n        = 12;
         subtitle = 'All Months';
       }
+    } else if (source === 'era5-ts') {
+      // one value per year only — the endpoint fetches a single month, so there is no all-months scope
+      const [vName, vLabel] = ETS_LABELS[val('ets-var')] || [val('ets-var'), 'Anomaly'];
+      rows     = _etsData;
+      valueKey = 'anom';
+      title    = `ERA5 ${vName} Anomaly Timeseries`;
+      label    = vLabel;
+      subtitle = [monthName(val('ets-month')), etsBoxLabel()].filter(Boolean).join('  ·  ');
     } else if (source === 'pca') {
       rows     = _pcaData;
       valueKey = 'pc';

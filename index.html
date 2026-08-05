@@ -1289,6 +1289,23 @@
         <input id="pca-table-month" type="text" placeholder="" maxlength="2" class="optional" />
         <span class="hint">optional, default: avg across PCA months</span>
       </div>
+      <button type="button" onclick="document.getElementById('pca-adv').classList.toggle('open');this.textContent=document.getElementById('pca-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="pca-adv" class="cbar-advanced">
+        <div class="param-desc">Fit the EOF over the years above, then project the PC index onto a different span. Defaults to the same years.</div>
+        <div class="field">
+          <label>PC START</label>
+          <input id="pca-pc-start" type="text" placeholder="" maxlength="4" class="optional" />
+          <span class="hint">optional, default: start year</span>
+        </div>
+        <div class="field">
+          <label>PC END</label>
+          <input id="pca-pc-end" type="text" placeholder="" maxlength="4" class="optional" />
+          <span class="hint">optional, default: end year</span>
+        </div>
+      </div>
       <button class="submit" onclick="runPca()">run</button>
       <div class="status" id="pca-status"></div>
     </div>
@@ -3750,8 +3767,12 @@
       };
       const pcaMonths  = document.getElementById('pca-months')?.value?.trim();
       const tableMonth = document.getElementById('pca-table-month')?.value?.trim();
+      const pcStart    = document.getElementById('pca-pc-start')?.value?.trim();
+      const pcEnd      = document.getElementById('pca-pc-end')?.value?.trim();
       if (pcaMonths)  params.pca_months  = pcaMonths;
       if (tableMonth) params.table_month = tableMonth;
+      if (pcStart)    params.start_pc    = pcStart;
+      if (pcEnd)      params.end_pc      = pcEnd;
       const data = await callAPI('/pca', params);
       const sorted = [...data.years].sort((a, b) => b.pc - a.pc);
       sorted.forEach((r, i) => r.rank = i + 1);
@@ -3854,8 +3875,8 @@
         label = `${monthName(val('ets-month'))} ${(ETS_LABELS[val('ets-var')] || [val('ets-var')])[0]} TS`;
       } else if (source === 'pca') {
         series    = _pcaData.map(r => r.pc);
-        startYear = val('pca-start');
-        endYear   = val('pca-end');
+        startYear = _pcaData[0]?.year ?? val('pca-start');
+        endYear   = _pcaData[_pcaData.length - 1]?.year ?? val('pca-end');
         lat1 = val('pca-lat1'); lat2 = val('pca-lat2');
         lon1 = val('pca-lon1'); lon2 = val('pca-lon2');
         label     = `EOF${val('pca-eof') || '1'} PC`;

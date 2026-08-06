@@ -1305,6 +1305,14 @@
           <input id="pca-pc-end" type="text" placeholder="" maxlength="4" class="optional" />
           <span class="hint">optional, default: end year</span>
         </div>
+        <div class="field">
+          <label>MATRIX</label>
+          <select id="pca-matrix" style="font-family:inherit;font-size:9px;border:1px solid #aaa;padding:.2rem .3rem;background:#fff;width:100%">
+            <option value="false">Covariance (default)</option>
+            <option value="true">Correlation</option>
+          </select>
+          <span class="hint">covariance keeps each cell's real variance; correlation normalizes every cell to unit variance</span>
+        </div>
       </div>
       <button class="submit" onclick="runPca()">run</button>
       <div class="status" id="pca-status"></div>
@@ -3769,10 +3777,12 @@
       const tableMonth = document.getElementById('pca-table-month')?.value?.trim();
       const pcStart    = document.getElementById('pca-pc-start')?.value?.trim();
       const pcEnd      = document.getElementById('pca-pc-end')?.value?.trim();
+      const pcaMatrix  = document.getElementById('pca-matrix')?.value;
       if (pcaMonths)  params.pca_months  = pcaMonths;
       if (tableMonth) params.table_month = tableMonth;
       if (pcStart)    params.start_pc    = pcStart;
       if (pcEnd)      params.end_pc      = pcEnd;
+      if (pcaMatrix)  params.correlation = pcaMatrix;
       const data = await callAPI('/pca', params);
       const sorted = [...data.years].sort((a, b) => b.pc - a.pc);
       sorted.forEach((r, i) => r.rank = i + 1);

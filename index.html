@@ -800,6 +800,14 @@
                      cursor:pointer;align-self:flex-start">▼ advanced</button>
       <div id="gdmi-adv" class="cbar-advanced">
         <div class="field">
+          <label>PLOT TYPE</label>
+          <select id="gdmi-plottype">
+            <option value="track">track</option>
+            <option value="intensity">intensity</option>
+            <option value="anom">anomaly</option>
+          </select>
+        </div>
+        <div class="field">
           <label>RESOLUTION (°)</label>
           <input id="gdmi-res" type="text" placeholder="0.5" class="optional" />
         </div>
@@ -3000,11 +3008,15 @@
   let _gdmiPlotType = 'track';
 
   async function runGdmi(plotType) {
-    _gdmiPlotType = plotType || 'track';
+    // explicit arg wins (rerun dropdown under the image), else fall back to the advanced panel
+    _gdmiPlotType = plotType || val('gdmi-plottype') || 'track';
     const btn = plotType ? null : (event && event.target);
     if (btn) setLoading('gdmi', btn);
     document.getElementById('gdmi-output-wrap').classList.remove('visible');
     try {
+      // anomaly is differenced against a whole-window climatology, so it only means
+      // anything cumulatively — keep the toggle honest about what the backend forces
+      if (_gdmiPlotType === 'anom') document.getElementById('gdmi-cum').classList.add('active');
       const cum = document.getElementById('gdmi-cum').classList.contains('active');
       const gdmiRes = val('gdmi-res'), gdmiSize = val('gdmi-s');
       const params = {
@@ -3052,6 +3064,7 @@
       const pwrap = document.getElementById('gdmi-plottype-wrap');
       const psel  = document.getElementById('gdmi-plottype-sel');
       psel.value = _gdmiPlotType;
+      document.getElementById('gdmi-plottype').value = _gdmiPlotType;
       pwrap.style.display = '';
       if (btn) setDone('gdmi', btn);
       const st = document.getElementById('gdmi-status');
@@ -3060,9 +3073,6 @@
   }
 
   async function rerunGdmiWithPlotType(sel) {
-    // anomaly is differenced against a whole-window climatology, so it only means
-    // anything cumulatively — keep the toggle honest about what the backend forces
-    if (sel.value === 'anom') document.getElementById('gdmi-cum').classList.add('active');
     await runGdmi(sel.value);
   }
 

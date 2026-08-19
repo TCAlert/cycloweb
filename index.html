@@ -794,6 +794,24 @@
         <input id="gdmi-region" type="text" placeholder="NATL" class="optional" />
         <span class="hint">optional</span>
       </div>
+      <button type="button" onclick="document.getElementById('gdmi-adv').classList.toggle('open');this.textContent=document.getElementById('gdmi-adv').classList.contains('open')?'▲ advanced':'▼ advanced'"
+              style="margin-top:.2rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
+                     padding:.2rem .5rem;border:1px solid #aaa;background:#fff;color:#555;
+                     cursor:pointer;align-self:flex-start">▼ advanced</button>
+      <div id="gdmi-adv" class="cbar-advanced">
+        <div class="field">
+          <label>RESOLUTION (°)</label>
+          <input id="gdmi-res" type="text" placeholder="0.5" class="optional" />
+        </div>
+        <div class="field">
+          <label>ENSEMBLE SIZE</label>
+          <select id="gdmi-s" class="optional">
+            <option value="">auto</option>
+            <option value="1000">1000</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
       <button id="gdmi-cum" type="button" class="active" onclick="this.classList.toggle('active')"
               style="margin-top:.3rem;font-family:inherit;font-size:9px;letter-spacing:.04em;
                      padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
@@ -1831,11 +1849,13 @@
                        padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
                        cursor:pointer">CONTINUOUS</button>
       </div>
-      <div id="gdmi-intensity-wrap" style="display:none;margin-top:.5rem;text-align:center">
-        <button id="gdmi-intensity-btn" type="button" onclick="rerunGdmiWithIntensity(this)"
-                style="font-family:inherit;font-size:9px;letter-spacing:.04em;
-                       padding:.2rem .5rem;border:1px solid #111;background:#fff;color:#111;
-                       cursor:pointer">INTENSITY</button>
+      <div id="gdmi-plottype-wrap" style="display:none;margin-top:.5rem;text-align:center">
+        <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">PLOT:</label>
+        <select id="gdmi-plottype-sel" class="ref-btn" onchange="rerunGdmiWithPlotType(this)">
+          <option value="track">track</option>
+          <option value="intensity">intensity</option>
+          <option value="anom">anomaly</option>
+        </select>
       </div>
     </div>
 
@@ -2986,6 +3006,7 @@
     document.getElementById('gdmi-output-wrap').classList.remove('visible');
     try {
       const cum = document.getElementById('gdmi-cum').classList.contains('active');
+      const gdmiRes = val('gdmi-res'), gdmiSize = val('gdmi-s');
       const params = {
         init:    val('gdmi-init'),
         init_hr: val('gdmi-init-hr'),
@@ -2994,6 +3015,8 @@
         region:  val('gdmi-region'),
         cum,
       };
+      if (gdmiRes) params.res = gdmiRes;
+      if (gdmiSize) params.s = gdmiSize;
       if (_gdmiPlotType !== 'track') params.plot_type = _gdmiPlotType;
       const data = await callAPI('/gdmi', params);
       showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
@@ -3026,18 +3049,21 @@
         hideAllTables();
         document.getElementById('gdmi-output-wrap').classList.add('visible');
       }
-      const iwrap = document.getElementById('gdmi-intensity-wrap');
-      const ibtn  = document.getElementById('gdmi-intensity-btn');
-      ibtn.classList.toggle('active', _gdmiPlotType === 'intensity');
-      iwrap.style.display = '';
+      const pwrap = document.getElementById('gdmi-plottype-wrap');
+      const psel  = document.getElementById('gdmi-plottype-sel');
+      psel.value = _gdmiPlotType;
+      pwrap.style.display = '';
       if (btn) setDone('gdmi', btn);
       const st = document.getElementById('gdmi-status');
       st.innerHTML = 'Done.<br><span style="cursor:pointer;text-decoration:underline;color:inherit" onclick="switchView(\'table\')">Storm list available in table tab.</span>';
     } catch (e) { if (btn) setError('gdmi', btn, e.message); }
   }
 
-  async function rerunGdmiWithIntensity() {
-    await runGdmi(_gdmiPlotType === 'intensity' ? 'track' : 'intensity');
+  async function rerunGdmiWithPlotType(sel) {
+    // anomaly is differenced against a whole-window climatology, so it only means
+    // anything cumulatively — keep the toggle honest about what the backend forces
+    if (sel.value === 'anom') document.getElementById('gdmi-cum').classList.add('active');
+    await runGdmi(sel.value);
   }
 
   async function runGdmiSize(storm) {

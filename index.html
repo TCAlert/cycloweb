@@ -802,9 +802,10 @@
         <div class="field">
           <label>PLOT TYPE</label>
           <select id="gdmi-plottype">
-            <option value="track">track</option>
+            <option value="track">density</option>
             <option value="intensity">intensity</option>
             <option value="anom">anomaly</option>
+            <option value="tracks">tracks</option>
           </select>
         </div>
         <div class="field">
@@ -1860,9 +1861,10 @@
       <div id="gdmi-plottype-wrap" style="display:none;margin-top:.5rem;text-align:center">
         <label style="font-size:9px;font-weight:bold;letter-spacing:.04em;margin-right:.3rem">PLOT:</label>
         <select id="gdmi-plottype-sel" class="ref-btn" onchange="rerunGdmiWithPlotType(this)">
-          <option value="track">track</option>
+          <option value="track">density</option>
           <option value="intensity">intensity</option>
           <option value="anom">anomaly</option>
+          <option value="tracks">tracks</option>
         </select>
       </div>
     </div>
@@ -3014,9 +3016,10 @@
     if (btn) setLoading('gdmi', btn);
     document.getElementById('gdmi-output-wrap').classList.remove('visible');
     try {
-      // anomaly is differenced against a whole-window climatology, so it only means
-      // anything cumulatively — keep the toggle honest about what the backend forces
-      if (_gdmiPlotType === 'anom') document.getElementById('gdmi-cum').classList.add('active');
+      // anomaly is differenced against a whole-window climatology, and the track map draws
+      // every fix up to the valid time, so both are cumulative — keep the toggle honest
+      // about what the backend forces
+      if (_gdmiPlotType === 'anom' || _gdmiPlotType === 'tracks') document.getElementById('gdmi-cum').classList.add('active');
       const cum = document.getElementById('gdmi-cum').classList.contains('active');
       const gdmiRes = val('gdmi-res'), gdmiSize = val('gdmi-s');
       const params = {

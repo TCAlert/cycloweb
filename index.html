@@ -3046,7 +3046,7 @@
         data.storms.forEach(s => { stormMap[s[0]] = s; });
 
         const actionCells = id =>
-          `<td><select class="ref-btn" onchange="runGdmiTrack('${id}', this)"><option value="">track</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td>` +
+          `<td><select class="ref-btn" onchange="runGdmiTrack('${id}', this)"><option value="">track</option><option value="spaghetti">spaghetti</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option></select></td>` +
           `<td><select class="ref-btn" onchange="runGdmiSeries('${id}', this)"><option value="">series</option><option value="vmax">vmax</option><option value="dvmax">dvmax</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="lat">lat</option><option value="lon">lon</option></select></td>` +
           `<td><select class="ref-btn" onchange="runGdmiProbs('${id}', this)"><option value="">probs</option><option value="vmax">vmax</option><option value="ri">ri</option></select></td>` +
           `<td><select class="ref-btn" onchange="runGdmiLmi('${id}', this)"><option value="">lmi</option><option value="lon">lon</option><option value="lat">lat</option><option value="time">time</option><option value="slp">slp</option><option value="rmw">rmw</option><option value="dvmax">dvmax</option></select></td>` +
@@ -3134,6 +3134,26 @@
   async function runGdmiTrack(storm, sel, gridded) {
     const varName = sel ? sel.value : _trackVar;
     if (sel) sel.value = '';
+    // spaghetti is the basin track map zoomed to one storm, not a stormTrack variable
+    if (varName === 'spaghetti') {
+      const sst = document.getElementById('gdmi-status');
+      sst.textContent = 'loading...';
+      try {
+        const data = await callAPI('/gdmi', {
+          init:      val('gdmi-init'),
+          init_hr:   val('gdmi-init-hr'),
+          date:      val('gdmi-date'),
+          date_hr:   val('gdmi-date-hr'),
+          plot_type: 'tracks',
+          storm,
+        });
+        showImage(API_BASE + data.image_url + '?t=' + Date.now(), null, null);
+        document.getElementById('track-gridded-wrap').style.display = 'none';
+        document.getElementById('series-table-wrap').style.display = 'none';
+        sst.textContent = 'done.';
+      } catch (e) { sst.textContent = 'error: ' + e.message; }
+      return;
+    }
     _trackStorm = storm;
     _trackVar = varName;
     _trackGridded = !!gridded;

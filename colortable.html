@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CycloWeb · Color Table</title>
+  <link rel="icon" type="image/png" href="IMG_3545.PNG" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      background: #fff;
+      color: #111;
+      font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 2px solid #111;
+      padding: .5rem 1rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 14px; font-weight: bold; letter-spacing: .05em; }
+    header h1 a { color: inherit; text-decoration: none; }
+    header span { font-size: 11px; color: #555; }
+
+    /* ── Main layout ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Side panels ── */
+    .left-panel, .editor-panel {
+      flex-shrink: 0;
+      padding: .9rem .85rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .left-panel   { width: 230px; border-right: 1px solid #bbb; }
+    .editor-panel { width: 290px; border-left: 1px solid #bbb; }
+
+    .param-panel { display: flex; flex-direction: column; gap: .55rem; }
+
+    .param-title { font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: baseline; }
+    .param-desc  { font-size: 11px; color: #666; line-height: 1.4; }
+    .tag { font-size: 9px; font-weight: normal; letter-spacing: .06em; color: #888; border: 1px solid #ccc; padding: 0 .3rem; }
+    .tag.edited { color: #111; border-color: #111; }
+
+    .field { display: flex; flex-direction: column; gap: .15rem; }
+    .field label { font-size: 11px; color: #444; }
+    .field input, .field select {
+      background: #fff;
+      border: 1px solid #999;
+      color: #111;
+      font-family: inherit;
+      font-size: 13px;
+      padding: .25rem .35rem;
+      width: 100%;
+    }
+    .field input:focus, .field select:focus { outline: 1px solid #111; }
+    .field input.optional { border-style: dashed; }
+    .field .hint { font-size: 11px; color: #888; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+    .stepper { display: flex; gap: .3rem; }
+    .step-btn { flex: 1; background: #fff; border: 1px solid #999; color: #111; cursor: pointer; font-family: inherit; font-size: 11px; padding: .2rem .3rem; }
+    .step-btn:hover:not(:disabled) { background: #f0f0f0; }
+    .step-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .step-btn.active { background: #111; border-color: #111; color: #fff; }
+    .step-btn.active:hover { background: #333; }
+
+    button.submit {
+      background: #111;
+      border: 1px solid #111;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      padding: .3rem .9rem;
+      align-self: flex-start;
+      margin-top: .2rem;
+    }
+    button.submit:disabled { opacity: .4; cursor: not-allowed; }
+    button.submit:hover:not(:disabled) { background: #333; }
+
+    .status { font-size: 10px; min-height: .9rem; }
+    .status.loading { color: #555; }
+    .status.error   { color: #b00; white-space: pre-wrap; }
+    .status.success { color: #080; }
+
+    .info-btn {
+      margin-top: auto;
+      border-top: 1px solid #ddd;
+      color: #888;
+      font-size: 11px;
+      padding: .4rem 0;
+      text-decoration: none;
+    }
+    .info-btn:hover { color: #111; }
+
+    /* ── Center: toolbar + image + colorbar ── */
+    .right-panel {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: flex-end;
+      border-bottom: 1px solid #aaa;
+      flex-shrink: 0;
+    }
+    .view-title { flex: 1; font-size: 12px; padding: .3rem .85rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: #666;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      padding: .3rem .85rem;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: #111; }
+
+    .image-area {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      padding: 1rem 1rem .4rem;
+      display: flex;
+    }
+    #ct-canvas { flex: 1; width: 100%; height: 100%; min-height: 0; cursor: grab; touch-action: none; }
+    #ct-canvas:active { cursor: grabbing; }
+    .image-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #bbb;
+      pointer-events: none;
+    }
+    .image-placeholder[hidden] { display: none; }
+
+    .cbar { flex-shrink: 0; padding: 0 1.8rem .7rem; }
+    .cbar canvas { display: block; width: 100%; height: 14px; border: 1px solid #111; }
+    .cbar-ticks { position: relative; height: 1rem; font-size: 10px; }
+    .cbar-ticks span { position: absolute; top: .15rem; transform: translateX(-50%); white-space: nowrap; }
+    .cbar-ticks span::before { content: ''; position: absolute; left: 50%; top: -.3rem; height: .25rem; border-left: 1px solid #111; }
+
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-top: 1px solid #aaa;
+      flex-shrink: 0;
+      padding: 0 .85rem;
+      font-size: 11px;
+      min-height: 1.9rem;
+    }
+    #ct-hover { flex: 1; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .view-toggle a, .link-btn { color: #111; font-family: inherit; font-size: 11px; background: none; border: none; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+    /* ── Right: table editor ── */
+    #ct-ramp-wrap { position: relative; padding-bottom: .9rem; }
+    #ct-ramp { display: block; width: 100%; height: 22px; border: 1px solid #111; cursor: copy; }
+    #ct-handles { position: absolute; left: 0; right: 0; top: 23px; height: .9rem; }
+    .handle {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      margin-left: -4.5px;
+      background: #fff;
+      border: 1px solid #111;
+      transform: rotate(45deg);
+      cursor: ew-resize;
+      padding: 0;
+      touch-action: none;
+    }
+    .handle:hover, .handle.selected { background: #111; }
+
+    .points-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #444; }
+    .points-head .stepper { flex: 0 0 auto; }
+    .points-head .step-btn { flex: 0 0 auto; padding: .1rem .45rem; }
+
+    #ct-points { display: flex; flex-direction: column; border: 1px solid #ddd; }
+    .point { display: grid; grid-template-columns: 4.6rem 1.6rem 1fr 1.4rem 1.4rem; align-items: center; gap: .25rem; padding: .12rem .25rem; }
+    .point:nth-child(even) { background: #f8f8f8; }
+    .point.selected { background: #fffbcc; }
+    .point input { font-family: inherit; font-size: 11px; border: 1px solid #bbb; background: #fff; color: #111; padding: .1rem .2rem; width: 100%; min-width: 0; }
+    .point input:focus { outline: 1px solid #111; }
+    .point input[type=color] { height: 1.25rem; padding: 0 .05rem; cursor: pointer; }
+    .point button { font-family: inherit; font-size: 11px; background: none; border: 1px solid transparent; color: #888; cursor: pointer; height: 1.25rem; }
+    .point button:hover { color: #111; border-color: #999; }
+
+    .error { font-size: 10px; color: #b00; min-height: .9rem; }
+
+    dialog { margin: auto; border: 1px solid #111; padding: .9rem; width: min(640px, 92vw); font-family: inherit; }
+    dialog::backdrop { background: rgba(0, 0, 0, .25); }
+    dialog .param-title { margin-bottom: .5rem; }
+    dialog textarea { width: 100%; height: 50vh; font-family: inherit; font-size: 11px; border: 1px solid #999; padding: .4rem; resize: vertical; margin-bottom: .5rem; }
+
+    /* ── Mobile ── */
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; overflow-y: auto; }
+      .left-panel, .editor-panel { width: 100%; border: none; border-bottom: 1px solid #bbb; overflow: visible; }
+      .right-panel { flex: none; height: 70vh; border-bottom: 1px solid #bbb; }
+      .info-btn { margin-top: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><a href="index.html">CYCLOWEB</a></h1>
+  <span>Color Table Editor / Deelan Jariwala</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── Left: data parameters ── -->
+  <div class="left-panel">
+    <div class="param-panel">
+      <div class="param-title">Color Table</div>
+      <div class="param-desc">GOES-R infrared on the native 2 km grid. Edit any satcmaps.py table and it recolors instantly.</div>
+      <div class="field">
+        <label>SATELLITE</label>
+        <input id="ct-satellite" type="text" placeholder="19" />
+        <span class="hint">16 17 18 19</span>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="ct-date" type="text" placeholder="MM/DD/YYYY" />
+      </div>
+      <div class="field">
+        <label>TIME (UTC)</label>
+        <input id="ct-time" type="text" placeholder="1800" maxlength="4" />
+        <span class="hint">nearest scan within 20 min</span>
+      </div>
+      <div class="field">
+        <label>LAT</label>
+        <input id="ct-lat" type="text" placeholder="25.0" />
+      </div>
+      <div class="field">
+        <label>LON</label>
+        <input id="ct-lon" type="text" placeholder="-80.0" />
+      </div>
+      <div class="field">
+        <label>BAND</label>
+        <input id="ct-band" type="text" placeholder="13" />
+        <span class="hint">7–16 · 8–10 use WV tables</span>
+      </div>
+      <div class="field">
+        <label>ZOOM</label>
+        <input id="ct-zoom" type="text" placeholder="2" class="optional" />
+        <span class="hint">-2 to 3, or region key</span>
+      </div>
+      <div class="field">
+        <button class="step-btn" id="ct-full" type="button">FULL DISK</button>
+        <span class="hint" id="ct-full-hint">whole disk, ~30 MB</span>
+      </div>
+      <button class="submit" id="ct-run">run</button>
+      <div class="status" id="ct-status"></div>
+    </div>
+    <a class="info-btn" href="index.html">← back to cycloweb</a>
+  </div>
+
+  <!-- ── Center: image ── -->
+  <div class="right-panel">
+    <div class="tabs">
+      <span class="view-title" id="ct-title">no image loaded</span>
+      <button class="tab-btn" id="ct-zoom-out" title="Zoom out">−</button>
+      <button class="tab-btn" id="ct-zoom-in" title="Zoom in">+</button>
+      <button class="tab-btn" id="ct-reset">reset view</button>
+    </div>
+    <div class="image-area">
+      <canvas id="ct-canvas" aria-label="Satellite image"></canvas>
+      <span class="image-placeholder" id="ct-placeholder">output will appear here</span>
+    </div>
+    <div class="cbar">
+      <canvas id="ct-legend"></canvas>
+      <div class="cbar-ticks" id="ct-ticks"></div>
+    </div>
+    <div class="view-toggle">
+      <span id="ct-hover">scroll to zoom · drag to pan</span>
+      <a id="ct-source" href="#" target="_blank" rel="noreferrer" hidden>source .nc</a>
+      <button class="link-btn" id="ct-png">save png</button>
+    </div>
+  </div>
+
+  <!-- ── Right: table editor ── -->
+  <div class="editor-panel">
+    <div class="param-panel">
+      <div class="param-title">Table <span class="tag" id="ct-dirty">PRESET</span></div>
+      <div class="field">
+        <label>PRESET</label>
+        <input id="ct-search" type="text" placeholder="filter" class="optional" />
+        <select id="ct-preset"></select>
+        <span class="hint" id="ct-preset-info"></span>
+      </div>
+      <div class="stepper">
+        <button class="step-btn" id="ct-apply" type="button">reload preset</button>
+        <button class="step-btn" id="ct-reverse" type="button">reverse</button>
+      </div>
+      <div class="pair">
+        <div class="field"><label>MIN °C</label><input id="ct-vmin" type="number" step="0.1" /></div>
+        <div class="field"><label>MAX °C</label><input id="ct-vmax" type="number" step="0.1" /></div>
+      </div>
+      <div class="field">
+        <label>BETWEEN COLORS</label>
+        <select id="ct-mode">
+          <option value="linear">linear gradient</option>
+          <option value="listed">discrete bins</option>
+        </select>
+      </div>
+      <div id="ct-ramp-wrap">
+        <canvas id="ct-ramp"></canvas>
+        <div id="ct-handles"></div>
+      </div>
+      <span class="param-desc">Drag a marker to move it; double-click the ramp to add one. Duplicate (⧉) a row for a sharp jump.</span>
+      <div class="points-head">
+        <span>BREAKPOINTS</span>
+        <div class="stepper">
+          <button class="step-btn" id="ct-undo" type="button" title="Undo (Ctrl+Z)">↶</button>
+          <button class="step-btn" id="ct-redo" type="button" title="Redo (Ctrl+Shift+Z)">↷</button>
+          <button class="step-btn" id="ct-add" type="button">+ add</button>
+        </div>
+      </div>
+      <div id="ct-points"></div>
+      <div class="error" id="ct-validation" role="alert"></div>
+      <div class="field">
+        <label>FUNCTION NAME</label>
+        <input id="ct-name" type="text" value="custom_ir" spellcheck="false" />
+      </div>
+      <button class="submit" id="ct-python">export python</button>
+      <div class="stepper">
+        <button class="step-btn" id="ct-save" type="button">save json</button>
+        <button class="step-btn" id="ct-import" type="button">import json</button>
+      </div>
+      <input id="ct-file" type="file" accept="application/json,.json" hidden />
+      <span class="param-desc">Edits are kept in this browser.</span>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<dialog id="ct-dialog">
+  <div class="param-title">Python <button class="step-btn" id="ct-close" type="button" style="flex:0">close</button></div>
+  <p class="param-desc" style="margin-bottom:.5rem">Paste into satcmaps.py and add it to irtables / wvtables. Returns <b>newcmp, vmax, vmin</b>.</p>
+  <textarea id="ct-code" readonly spellcheck="false"></textarea>
+  <div class="stepper">
+    <button class="step-btn" id="ct-copy" type="button">copy</button>
+    <button class="step-btn" id="ct-download" type="button">download .py</button>
+  </div>
+</dialog>
+
+<script type="module" src="colortable.js"></script>
+</body>
+</html>

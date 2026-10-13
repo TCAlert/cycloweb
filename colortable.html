@@ -275,8 +275,11 @@
         <span class="hint">-2 to 3, or region key</span>
       </div>
       <div class="field">
-        <button class="step-btn" id="ct-full" type="button">FULL DISK</button>
-        <span class="hint" id="ct-full-hint">whole disk or grid; sharpens as you zoom</span>
+        <div class="stepper">
+          <button class="step-btn" id="ct-full" type="button">FULL DISK</button>
+          <button class="step-btn" id="ct-meso" type="button">MESOSECTOR</button>
+        </div>
+        <span class="hint" id="ct-area-hint">both off: area from LAT, LON, ZOOM</span>
       </div>
       <button class="submit" id="ct-run">run</button>
       <div class="status" id="ct-status"></div>

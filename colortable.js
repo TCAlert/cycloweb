@@ -20,7 +20,7 @@ let current = null;        // metadata of the displayed image
 let request = null;        // parameters of the displayed image, reused for zoom-in requests
 let selected = -1;
 let undoStack = [], redoStack = [];
-let lut, drawQueued = false, fullDisk = false, fullRes = false;
+let lut, drawQueued = false, area = 'crop', fullRes = false;   // area: 'crop' (lat/lon/zoom), 'full', 'meso'
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { }
 
@@ -304,8 +304,8 @@ async function run() {
   if (!viewer) { setStatus('error', 'WebGL 2 is required to display imagery.'); return; }
   const btn = $('ct-run');
   if (!val('ct-date') || !val('ct-time')) { setStatus('error', 'DATE and TIME are required.'); return; }
-  if (!fullDisk && /^-?\d/.test(val('ct-zoom') || '2') && (!val('ct-lat') || !val('ct-lon'))) {
-    setStatus('error', 'LAT and LON are required (or use a region key in ZOOM, or FULL DISK).');
+  if (area === 'crop' && /^-?\d/.test(val('ct-zoom') || '2') && (!val('ct-lat') || !val('ct-lon'))) {
+    setStatus('error', 'LAT and LON are required (or use a region key in ZOOM, FULL DISK, or MESOSECTOR).');
     return;
   }
   btn.disabled = true;
@@ -317,7 +317,8 @@ async function run() {
       lat: val('ct-lat'),
       lon: val('ct-lon'),
       zoom: val('ct-zoom'),
-      full: fullDisk ? 'true' : null,
+      full: area === 'full' ? 'true' : null,
+      meso: area === 'meso' ? 'true' : null,
       maxpx: Math.min(viewer.maxTexture, FIRST_LOAD_PX),
     });
     setStatus('loading', `transferring ${meta.width} × ${meta.height} px...`);
@@ -406,7 +407,7 @@ const FIELDS = ['ct-satellite', 'ct-date', 'ct-time', 'ct-lat', 'ct-lon', 'ct-ba
 function updateHash() {
   const p = new URLSearchParams();
   FIELDS.forEach(id => { if (val(id)) p.set(id, val(id)); });
-  if (fullDisk) p.set('full', '1');
+  if (area !== 'crop') p.set(area, '1');
   history.replaceState(null, '', location.pathname + location.search + '#' + p.toString());
 }
 
@@ -419,14 +420,22 @@ function restoreInputs() {
     else { try { v = localStorage.getItem('cw_' + id); } catch { } }
     if (v !== null) $(id).value = v;
   });
-  if (fromHash && hash.get('full') === '1') setFull(true);
+  if (fromHash) setArea(hash.get('full') === '1' ? 'full' : hash.get('meso') === '1' ? 'meso' : 'crop');
 }
 
-function setFull(on) {
-  if (on && !viewer) return;
-  fullDisk = on;
-  $('ct-full').classList.toggle('active', on);
-  for (const id of ['ct-lat', 'ct-lon', 'ct-zoom']) $(id).disabled = on;
+// FULL DISK and MESOSECTOR are exclusive; with neither on, LAT / LON / ZOOM pick the area.
+const AREA_HINTS = {
+  crop: 'both off: area from LAT, LON, ZOOM',
+  full: 'whole disk or grid; sharpens as you zoom',
+  meso: 'GOES M1 + M2 side by side · Himawari target area',
+};
+
+function setArea(next) {
+  area = next;
+  $('ct-full').classList.toggle('active', area === 'full');
+  $('ct-meso').classList.toggle('active', area === 'meso');
+  $('ct-area-hint').textContent = AREA_HINTS[area];
+  for (const id of ['ct-lat', 'ct-lon', 'ct-zoom']) $(id).disabled = area !== 'crop';
 }
 
 function download(blob, name) {
@@ -447,7 +456,8 @@ FIELDS.forEach(id => {
   $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
 });
 for (const id of ['ct-satellite', 'ct-band']) $(id).addEventListener('input', () => { if (presets[fieldKind()]) setKind(fieldKind()); });
-$('ct-full').onclick = () => setFull(!fullDisk);
+$('ct-full').onclick = () => setArea(area === 'full' ? 'crop' : 'full');
+$('ct-meso').onclick = () => setArea(area === 'meso' ? 'crop' : 'meso');
 
 $('ct-search').oninput = presetOptions;
 $('ct-preset').onchange = applyPreset;
@@ -584,45 +594,52 @@ async function labeledImage(img) {
   const barH = Math.round(size * 1.1), tickH = Math.round(size * .35);
   const font = weight => `${weight} ${size}px "Courier Prime", "Courier New", monospace`;
   try { await Promise.all([document.fonts.load(font('bold')), document.fonts.load(font('normal'))]); } catch { }
-  const top = 2 * line + pad, barTop = top + img.height + pad;
-  const out = document.createElement('canvas');
+  const out = document.createElement('canvas'), ctx = out.getContext('2d');
+
+  // Text and colorbar sit inside a side margin (the image runs edge to edge); the margin is wide
+  // enough for the end tick labels to be centred on their ticks.
+  const ticks = tickValues();
+  ctx.font = font('normal');
+  const endHalf = Math.max(...[ticks[0], ticks.at(-1)].map(t => ctx.measureText(label(t)).width / 2));
+  const margin = Math.ceil(Math.max(size * .8, endHalf + size * .3));
+  const topPad = Math.round(size * .5), top = topPad + 2 * line + pad, barTop = top + img.height + pad;
   out.width = W;
-  out.height = barTop + barH + tickH + line + Math.round(size * .3);
-  const ctx = out.getContext('2d');
+  out.height = barTop + barH + tickH + line + Math.round(size * .6);
+
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.fillStyle = '#111';
   ctx.font = font('bold');
-  ctx.fillText(`${current.title} ${current.quantity}`, 0, line - size * .25);
-  ctx.fillText(`Time: ${current.scan_time}`, 0, 2 * line - size * .25);
+  ctx.fillText(`${current.title} ${current.quantity}`, margin, topPad + line - size * .25);
+  ctx.fillText(`Time: ${current.scan_time}`, margin, topPad + 2 * line - size * .25);
   ctx.font = font('normal');
   ctx.textAlign = 'right';
-  ctx.fillText('Deelan Jariwala', W, 2 * line - size * .25);
+  ctx.fillText('Deelan Jariwala', W - margin, topPad + 2 * line - size * .25);
   ctx.drawImage(img, 0, top);
 
   // Colorbar: one column per output pixel, binned exactly like the image
-  const bar = ctx.createImageData(W, 1), n = lut.length / 4;
-  for (let x = 0; x < W; x++) {
-    const i = Math.min(n - 1, Math.floor(x / W * n)) * 4;
+  const barW = W - 2 * margin, bar = ctx.createImageData(barW, 1), n = lut.length / 4;
+  for (let x = 0; x < barW; x++) {
+    const i = Math.min(n - 1, Math.floor(x / barW * n)) * 4;
     bar.data.set(lut.subarray(i, i + 4), x * 4);
   }
   const strip = document.createElement('canvas');
-  strip.width = W;
+  strip.width = barW;
   strip.height = 1;
   strip.getContext('2d').putImageData(bar, 0, 0);
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(strip, 0, barTop, W, barH);
+  ctx.drawImage(strip, margin, barTop, barW, barH);
   ctx.strokeStyle = '#111';
   ctx.lineWidth = Math.max(1, Math.round(size / 14));
-  ctx.strokeRect(ctx.lineWidth / 2, barTop + ctx.lineWidth / 2, W - ctx.lineWidth, barH - ctx.lineWidth);
+  ctx.strokeRect(margin + ctx.lineWidth / 2, barTop + ctx.lineWidth / 2, barW - ctx.lineWidth, barH - ctx.lineWidth);
 
   const { vmin, vmax } = palette;
   ctx.font = font('normal');
   ctx.textAlign = 'center';
-  for (const t of tickValues()) {
-    const x = Math.round((t - vmin) / (vmax - vmin) * (W - 1)) + .5, text = label(t), half = ctx.measureText(text).width / 2;
+  for (const t of ticks) {
+    const x = margin + Math.round((t - vmin) / (vmax - vmin) * (barW - 1)) + .5;
     ctx.fillRect(x - ctx.lineWidth / 2, barTop + barH, ctx.lineWidth, tickH);
-    ctx.fillText(text, Math.min(W - half, Math.max(half, x)), barTop + barH + tickH + line - size * .25);
+    ctx.fillText(label(t), x, barTop + barH + tickH + line - size * .25);
   }
   return out;
 }
@@ -672,7 +689,11 @@ canvas.onpointermove = e => {
   if (drag) viewer.pan(e.clientX - drag.x, e.clientY - drag.y, drag.start);
   const p = viewer?.pixel(e.clientX, e.clientY);
   if (!p) return;
-  const m = viewer.meta, raw = viewer.valueAt(p.x, p.y), ll = latlon(m, p.x, p.y);
+  const m = viewer.meta;
+  if (p.x < 0 || p.y < 0 || p.x >= m.width || p.y >= m.height) { $('ct-hover').textContent = ''; return; }
+  // mesosector panels each have their own grid; positions are relative to the panel
+  const pan = m.panels?.find(q => p.x >= q.offset && p.x < q.offset + q.width && p.y < q.height);
+  const raw = viewer.valueAt(p.x, p.y), ll = pan ? latlon(pan, p.x - pan.offset, p.y) : latlon(m, p.x, p.y);
   const value = raw * (m.scale ?? .01) + (m.offset ?? -200);
   $('ct-hover').textContent = (raw === 65535 ? 'no data' : `${value.toFixed(isVis() ? 3 : 2)} ${unit()}`.trim())
     + (ll ? ` · ${ll.lat.toFixed(2)}°, ${ll.lon.toFixed(2)}°` : '');

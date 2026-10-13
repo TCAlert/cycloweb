@@ -31,6 +31,8 @@ void main() {
   vec2 uv = (screen - rect.xy) / rect.zw;
   if (any(lessThan(uv, vec2(0.))) || any(greaterThanEqual(uv, vec2(1.)))) discard;
   vec2 p = view.xy + uv * view.zw;
+  // a 'contain' view can reach past the image edges: those parts are page background
+  if (any(lessThan(p, vec2(0.))) || any(greaterThanEqual(p, vec2(textureSize(dataTex, 0))))) { outColor = background; return; }
   vec2 d = (p - detailRect.xy) / detailRect.zw;
   uint value = hasDetail == 1 && all(greaterThanEqual(d, vec2(0.))) && all(lessThan(d, vec2(1.)))
     ? texelFetch(detailTex, ivec2(floor(d * detailSize)), 0).r
@@ -158,22 +160,23 @@ export class Viewer {
     this.onview();
   }
 
-  // Keep the view inside the image and, once the canvas size is known, at the canvas's aspect
-  // ratio so the image fills the whole viewer (cropping, never letterboxing). Keeps the view's centre.
+  // Keep the view at the canvas's aspect ratio so the image fills the viewer. Zoomed all the way out,
+  // 'cover' images (the default) are cropped to fill it; 'contain' images (side-by-side mesosectors)
+  // are shown whole, with background beside them. Keeps the view's centre.
   clamp() {
     const v = this.view, m = this.meta;
     if (!v || !m) return;
     let w = Math.max(2, v[2]), h = Math.max(2, v[3]);
     if (this.aspect) {
+      const maxW = m.fit === 'contain' ? Math.max(m.width, m.height * this.aspect) : Math.min(m.width, m.height * this.aspect);
+      w = Math.min(w, maxW);
       h = w / this.aspect;
-      if (h > m.height) { h = m.height; w = h * this.aspect; }
-      if (w > m.width) { w = m.width; h = w / this.aspect; }
     } else {
       w = Math.min(m.width, w);
       h = Math.min(m.height, h);
     }
-    const cx = v[0] + v[2] / 2, cy = v[1] + v[3] / 2;
-    this.view = [Math.max(0, Math.min(m.width - w, cx - w / 2)), Math.max(0, Math.min(m.height - h, cy - h / 2)), w, h];
+    const place = (c, size, full) => size >= full ? (full - size) / 2 : Math.max(0, Math.min(full - size, c - size / 2));
+    this.view = [place(v[0] + v[2] / 2, w, m.width), place(v[1] + v[3] / 2, h, m.height), w, h];
   }
 
   draw() {
@@ -205,10 +208,13 @@ export class Viewer {
     g.drawArrays(g.TRIANGLES, 0, 6);
   }
 
-  // Copy of the drawn image, for PNG export.
+  // Copy of the drawn image (not any background beside a 'contain' image), for PNG export.
   snapshot() {
     this.draw();
-    const [x, y, w, h] = this.rect.map(Math.round), out = document.createElement('canvas');
+    const [vx, vy, vw, vh] = this.view, m = this.meta, [rx, ry, rw, rh] = this.rect;
+    const x = Math.round(rx + Math.max(0, -vx) / vw * rw), y = Math.round(ry + Math.max(0, -vy) / vh * rh);
+    const w = Math.round(rx + Math.min(vw, m.width - vx) / vw * rw) - x, h = Math.round(ry + Math.min(vh, m.height - vy) / vh * rh) - y;
+    const out = document.createElement('canvas');
     out.width = w;
     out.height = h;
     out.getContext('2d').drawImage(this.canvas, x, y, w, h, 0, 0, w, h);

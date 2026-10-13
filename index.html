@@ -571,12 +571,12 @@
       <div class="field">
         <label>BAND</label>
         <input id="plot-band" type="text" placeholder="13" />
-        <span class="hint">channel number</span>
+        <span class="hint">channel number · vis = 0.5 km visible</span>
       </div>
       <div class="field">
         <label>COLORMAP</label>
         <input id="plot-cmap" type="text" placeholder="irg" class="optional" />
-        <span class="hint">optional</span>
+        <span class="hint">optional · visible: stretch, fit, corrected</span>
       </div>
       <div class="field">
         <label>ZOOM</label>
@@ -2181,6 +2181,17 @@
                 <tr><td class="code">NW</td><td class="note">Northwest</td></tr>
               </table>
             </div>
+            <div class="ref-section">
+              <h3>VISIBLE (GOES-16–19, HIMAWARI)</h3>
+              <table class="ref-table">
+                <tr><td class="code">vis, 1</td><td class="note">0.5 km red visible (GOES ch02, Himawari ch03)</td></tr>
+                <tr><td class="code">2, 3g, 4g</td><td class="note">that imager's channel 02 / 03 / 04</td></tr>
+                <tr><td class="code">stretch</td><td class="note">2–98% histogram stretch (COLORMAP field)</td></tr>
+                <tr><td class="code">fit</td><td class="note">colorbar fit to the data</td></tr>
+                <tr><td class="code">corrected</td><td class="note">solar zenith angle correction</td></tr>
+                <tr><td class="code">[x:y]</td><td class="note">colorbar limits, e.g. corrected/stretch[0.1:1.5]</td></tr>
+              </table>
+            </div>
           </div>
 
           <div>
@@ -2919,7 +2930,9 @@
         cmap:      val('plot-cmap'),
         zoom:      val('plot-zoom'),
       });
-      showImage(API_BASE + data.image_url + '?t=' + Date.now(), API_BASE + data.nc_url, 'download .nc');
+      // visible GOES images link the source file on S3 (an absolute URL) rather than a server copy
+      const nc = data.nc_url.startsWith('http') ? data.nc_url : API_BASE + data.nc_url;
+      showImage(API_BASE + data.image_url + '?t=' + Date.now(), nc, 'download .nc');
       setDone('plot', btn);
     } catch (e) { setError('plot', btn, e.message); }
   }

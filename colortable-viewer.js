@@ -1,5 +1,7 @@
-// WebGL 2 viewer: native-grid uint16 temperatures live in an integer texture, and the
-// palette is a small RGBA lookup texture, so recoloring never touches the pixel data.
+// WebGL 2 viewer: native-grid uint16 values (temperature or reflectance, see `decode`) live in an
+// integer texture, and the palette is a small RGBA lookup texture, so recoloring never touches the
+// pixel data. A second, finer "detail" texture can cover part of the image: the page loads it for
+// the area zoomed into, so the shown resolution follows the zoom.
 
 const BACKGROUND = [1, 1, 1, 1];   // page white; also used for missing / space pixels
 
@@ -11,10 +13,15 @@ const FRAGMENT = `#version 300 es
 precision highp float;
 precision highp usampler2D;
 uniform usampler2D dataTex;
+uniform usampler2D detailTex;
 uniform sampler2D colorTex;
 uniform vec4 rect;          // image placement on the canvas (x, y, w, h) in device pixels
 uniform vec4 view;          // visible data window (col, row, w, h)
-uniform vec2 range;         // vmin, vmax in °C
+uniform vec4 detailRect;    // area the detail texture covers, in base-image pixels (x, y, w, h)
+uniform vec2 detailSize;    // detail texture size in texels
+uniform int hasDetail;
+uniform vec2 decode;        // value = texel * decode.x + decode.y
+uniform vec2 range;         // vmin, vmax in the same units
 uniform vec4 background;
 uniform float canvasHeight;
 uniform int colors;
@@ -23,9 +30,13 @@ void main() {
   vec2 screen = vec2(gl_FragCoord.x, canvasHeight - gl_FragCoord.y);
   vec2 uv = (screen - rect.xy) / rect.zw;
   if (any(lessThan(uv, vec2(0.))) || any(greaterThanEqual(uv, vec2(1.)))) discard;
-  uint value = texelFetch(dataTex, ivec2(floor(view.xy + uv * view.zw)), 0).r;
+  vec2 p = view.xy + uv * view.zw;
+  vec2 d = (p - detailRect.xy) / detailRect.zw;
+  uint value = hasDetail == 1 && all(greaterThanEqual(d, vec2(0.))) && all(lessThan(d, vec2(1.)))
+    ? texelFetch(detailTex, ivec2(floor(d * detailSize)), 0).r
+    : texelFetch(dataTex, ivec2(floor(p)), 0).r;
   if (value == 65535u) { outColor = background; return; }
-  float t = float(value) * .01 - 200.;
+  float t = float(value) * decode.x + decode.y;
   float f = clamp((t - range.x) / (range.y - range.x), 0., 1.);
   int i = min(colors - 1, int(floor(f * float(colors))));   // matplotlib bin rule
   outColor = texelFetch(colorTex, ivec2(i, 0), 0);
@@ -59,18 +70,24 @@ export class Viewer {
     g.vertexAttribPointer(a, 2, g.FLOAT, false, 0, 0);
 
     this.locations = {};
-    for (const name of ['dataTex', 'colorTex', 'rect', 'view', 'range', 'background', 'canvasHeight', 'colors'])
+    for (const name of ['dataTex', 'detailTex', 'colorTex', 'rect', 'view', 'detailRect', 'detailSize', 'hasDetail',
+                        'decode', 'range', 'background', 'canvasHeight', 'colors'])
       this.locations[name] = g.getUniformLocation(this.program, name);
     this.dataTex = g.createTexture();
     this.colorTex = g.createTexture();
+    this.detailTex = g.createTexture();
     g.uniform1i(this.locations.dataTex, 0);
     g.uniform1i(this.locations.colorTex, 1);
+    g.uniform1i(this.locations.detailTex, 2);
     g.uniform4fv(this.locations.background, BACKGROUND);
     this.bind(this.dataTex, 0);
     this.bind(this.colorTex, 1);
+    this.bind(this.detailTex, 2);
     this.range = [-100, 30];
     this.hasImage = false;
-    new ResizeObserver(() => this.draw()).observe(canvas);
+    this.detail = null;
+    this.onview = () => {};   // called after the visible area changes (zoom, pan, resize)
+    new ResizeObserver(() => { this.draw(); this.onview(); }).observe(canvas);
   }
 
   bind(tex, unit) {
@@ -88,11 +105,39 @@ export class Viewer {
       throw Error(`This image is ${meta.width} × ${meta.height}; your GPU allows ${this.maxTexture} px. Use a smaller zoom.`);
     this.data = data;
     this.meta = meta;
+    this.detail = null;
     this.bind(this.dataTex, 0);
     g.pixelStorei(g.UNPACK_ALIGNMENT, 1);
     g.texImage2D(g.TEXTURE_2D, 0, g.R16UI, meta.width, meta.height, 0, g.RED_INTEGER, g.UNSIGNED_SHORT, data);
     this.hasImage = true;
     this.full();
+  }
+
+  // Finer pixels for part of the image; rect = [x, y, w, h] in base-image pixels.
+  setDetail(data, meta, rect) {
+    const g = this.gl;
+    if (meta.width > this.maxTexture || meta.height > this.maxTexture) return;
+    this.bind(this.detailTex, 2);
+    g.pixelStorei(g.UNPACK_ALIGNMENT, 1);
+    g.texImage2D(g.TEXTURE_2D, 0, g.R16UI, meta.width, meta.height, 0, g.RED_INTEGER, g.UNSIGNED_SHORT, data);
+    this.detail = { data, meta, rect };
+    this.draw();
+  }
+
+  clearDetail() {
+    this.detail = null;
+    this.draw();
+  }
+
+  // Packed value under a base-image position, from the detail texture where it covers it.
+  valueAt(x, y) {
+    const d = this.detail;
+    if (d) {
+      const u = (x - d.rect[0]) / d.rect[2], v = (y - d.rect[1]) / d.rect[3];
+      if (u >= 0 && u < 1 && v >= 0 && v < 1)
+        return d.data[Math.floor(v * d.meta.height) * d.meta.width + Math.floor(u * d.meta.width)];
+    }
+    return this.data[Math.floor(y) * this.meta.width + Math.floor(x)];
   }
 
   setPalette(lut, min, max) {
@@ -110,6 +155,7 @@ export class Viewer {
     this.view = [bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1]];
     this.clamp();
     this.draw();
+    this.onview();
   }
 
   // Keep the view inside the image and, once the canvas size is known, at the canvas's aspect
@@ -147,6 +193,13 @@ export class Viewer {
     g.uniform4fv(this.locations.rect, this.rect);
     g.uniform4fv(this.locations.view, this.view);
     g.uniform2fv(this.locations.range, this.range);
+    g.uniform2fv(this.locations.decode, [this.meta.scale ?? .01, this.meta.offset ?? -200]);
+    const d = this.detail;
+    g.uniform1i(this.locations.hasDetail, d ? 1 : 0);
+    if (d) {
+      g.uniform4fv(this.locations.detailRect, d.rect);
+      g.uniform2fv(this.locations.detailSize, [d.meta.width, d.meta.height]);
+    }
     g.uniform1f(this.locations.canvasHeight, h);
     g.uniform1i(this.locations.colors, this.colors);
     g.drawArrays(g.TRIANGLES, 0, 6);
@@ -179,6 +232,7 @@ export class Viewer {
     this.view = [v[0] + u * (v[2] - w), v[1] + t * (v[3] - h), w, h];
     this.clamp();
     this.draw();
+    this.onview();
   }
 
   pan(dx, dy, start) {
@@ -186,6 +240,7 @@ export class Viewer {
     this.view = [start[0] - dx * scale / this.rect[2] * start[2], start[1] - dy * scale / this.rect[3] * start[3], start[2], start[3]];
     this.clamp();
     this.draw();
+    this.onview();
   }
 }
 

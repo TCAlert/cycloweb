@@ -4,18 +4,19 @@ import { Viewer, latlon } from './colortable-viewer.js';
 // ?api=http://127.0.0.1:7860 points the page at a local api.py for testing
 const LOCAL_API = new URLSearchParams(location.search).get('api');
 const API_BASE = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(LOCAL_API || '') ? LOCAL_API : 'https://tcalert-cycloweb2.hf.space';
-const FULL_DISK_PX = 5500;   // largest whole image (Himawari full disk)
+const FIRST_LOAD_PX = 4096;  // longest side of the first image; zooming in loads finer pixels for the view
 const STORE_KEY = 'cw_ct_palettes';
 
 const $ = id => document.getElementById(id);
 const clone = x => JSON.parse(JSON.stringify(x));
 const val = id => $(id).value.trim();
 
-let presets = {};          // { '13': [...IR tables], '9': [...WV tables] }
+let presets = {};          // { '13': [...IR tables], '9': [...WV tables], vis: [...reflectance tables] }
 let kind = '13';           // which preset group the editor is showing
 let palette = null;
 let viewer = null;
 let current = null;        // metadata of the displayed image
+let request = null;        // parameters of the displayed image, reused for zoom-in requests
 let selected = -1;
 let undoStack = [], redoStack = [];
 let lut, drawQueued = false, fullDisk = false;
@@ -81,15 +82,22 @@ function update() {
   $('ct-redo').disabled = !redoStack.length;
 }
 
+// Temperatures are edited in °C to 0.1; reflectances are unitless and edited to 0.001
+const isVis = () => kind === 'vis';
+const unit = () => isVis() ? '' : '°C';
+const digits = () => isVis() ? 3 : 1;
+const roundT = t => Number(t.toFixed(digits()));
+const label = t => `${t}${unit()}`;
+
 function niceStep(span) {
-  for (const s of [1, 2, 5, 10, 20, 25, 50, 100]) if (span / s <= 10) return s;
+  for (const s of [.01, .02, .05, .1, .2, .25, .5, 1, 2, 5, 10, 20, 25, 50, 100]) if (span / s <= 10) return s;
   return 200;
 }
 
-// Colorbar tick temperatures (shared by the on-screen colorbar and the PNG export)
+// Colorbar tick values (shared by the on-screen colorbar and the PNG export)
 function tickValues() {
   const { vmin, vmax } = palette, step = niceStep(vmax - vmin), out = [];
-  for (let t = Math.ceil(vmin / step) * step; t <= vmax + 1e-9; t += step) out.push(Math.round(t * 10) / 10);
+  for (let k = Math.ceil(vmin / step - 1e-9); k * step <= vmax + 1e-9; k++) out.push(Number((k * step).toFixed(4)));
   return out;
 }
 
@@ -109,7 +117,7 @@ function drawRamps() {
   $('ct-ticks').replaceChildren(...tickValues().map(t => {
     const s = document.createElement('span');
     s.style.left = 100 * (t - vmin) / (vmax - vmin) + '%';
-    s.textContent = `${t}°C`;
+    s.textContent = label(t);
     return s;
   }));
   for (const h of $('ct-handles').children) {
@@ -128,6 +136,9 @@ function editor() {
   if (!palette) return;
   $('ct-vmin').value = palette.vmin;
   $('ct-vmax').value = palette.vmax;
+  $('ct-vmin').step = $('ct-vmax').step = isVis() ? '0.01' : '0.1';
+  $('ct-vmin-label').textContent = `MIN ${unit()}`.trim();
+  $('ct-vmax-label').textContent = `MAX ${unit()}`.trim();
   $('ct-mode').value = palette.mode;
   const rows = [], handles = [];
 
@@ -141,9 +152,9 @@ function editor() {
 
     const temp = document.createElement('input');
     temp.type = 'number';
-    temp.step = '0.1';
-    temp.value = Number(p.t.toFixed(2));
-    temp.title = 'Temperature (°C)';
+    temp.step = isVis() ? '0.01' : '0.1';
+    temp.value = Number(p.t.toFixed(digits() + 1));
+    temp.title = isVis() ? 'Reflectance' : 'Temperature (°C)';
     temp.onfocus = untouch;
     temp.oninput = () => { touch(); delete p.x; p.t = temp.value === '' ? NaN : Number(temp.value); edited(); schedule(); };
     temp.onchange = () => { if (Number.isFinite(p.t)) { palette.points.sort((a, b) => a.t - b.t); editor(); } };
@@ -166,7 +177,7 @@ function editor() {
 
     const dup = document.createElement('button');
     dup.textContent = '⧉';
-    dup.title = 'Duplicate (same temperature = sharp jump)';
+    dup.title = 'Duplicate (same value = sharp jump)';
     dup.onclick = () => { remember(); palette.points.splice(i + 1, 0, { ...p }); edited(); selected = i + 1; editor(); };
 
     const del = document.createElement('button');
@@ -180,7 +191,7 @@ function editor() {
     const h = document.createElement('button');
     h.className = 'handle' + (i === selected ? ' selected' : '');
     h.dataset.index = i;
-    h.title = `${p.t.toFixed(1)} °C · ${p.color}`;
+    h.title = `${label(roundT(p.t))} · ${p.color}`;
     h.onpointerdown = e => {
       e.preventDefault();
       remember();
@@ -194,7 +205,7 @@ function editor() {
         const last = palette.points.length - 1;
         p.t = palette.mode === 'linear' && i === 0 ? palette.vmin
           : palette.mode === 'linear' && i === last ? palette.vmax
-          : Math.round(t * 10) / 10;
+          : roundT(t);
         temp.value = p.t;
         edited();
         schedule();
@@ -218,7 +229,7 @@ function addPoint(t) {
       const gaps = pts.slice(1).map((p, i) => ({ size: p.t - pts[i].t, t: (p.t + pts[i].t) / 2 }));
       t = gaps.sort((a, b) => b.size - a.size)[0].t;
     }
-    palette.points.push({ t: Number(t.toFixed(1)), color: hex(colorAt(pts, t)) });
+    palette.points.push({ t: roundT(t), color: hex(colorAt(pts, t)) });
     palette.points.sort((a, b) => a.t - b.t);
     edited();
     editor();
@@ -236,7 +247,8 @@ function presetOptions() {
     o.value = o.textContent = p.name;
     return o;
   }));
-  $('ct-preset-info').textContent = `${group.length} ${kind === '13' ? 'IR' : 'WV'} tables in satcmaps.py`;
+  $('ct-preset-info').textContent = isVis() ? `${group.length} built-in reflectance tables`
+    : `${group.length} ${kind === '13' ? 'IR' : 'WV'} tables in satcmaps.py`;
 }
 
 function applyPreset() {
@@ -249,7 +261,7 @@ function applyPreset() {
   editor();
 }
 
-// Switch the editor between the IR and WV collections, restoring that group's last palette.
+// Switch the editor between the IR, WV and reflectance collections, restoring that group's last palette.
 function setKind(next) {
   if (next === kind && palette) return;
   kind = next;
@@ -258,10 +270,10 @@ function setKind(next) {
   presetOptions();
   const group = presets[kind] || [];
   if (!group.length) return;
-  const fallback = kind === '13' ? 'irg' : 'wv';
+  const fallback = { '13': 'irg', '9': 'wv', vis: 'gray' }[kind];
   $('ct-preset').value = group.some(x => x.name === fallback) ? fallback : group[0].name;
-  const name = val('ct-name');
-  if (!name || name === 'custom_ir' || name === 'custom_wv') $('ct-name').value = kind === '13' ? 'custom_ir' : 'custom_wv';
+  const name = val('ct-name'), names = { '13': 'custom_ir', '9': 'custom_wv', vis: 'custom_vis' };
+  if (!name || Object.values(names).includes(name)) $('ct-name').value = names[kind];
   try {
     validate(saved[kind]);
     palette = clone(saved[kind]);
@@ -273,10 +285,12 @@ function setKind(next) {
   }
 }
 
-// Water-vapor bands use the WV tables: 8–10 on GOES-R / Himawari, channel 3 on GridSat
+// Reflectance bands (vis; 1–6 on GOES-R / Himawari; 1 on GridSat) use the reflectance tables,
+// water-vapor bands (8–10 on GOES-R / Himawari, 3 on GridSat) the WV tables
 function kindFor(satellite, band) {
   const s = satellite.toUpperCase(), n = parseInt(band);
   const gridsat = s === 'B1' || (/^\d+$/.test(s) && Number(s) >= 8 && Number(s) <= 15);
+  if (String(band).trim().toLowerCase() === 'vis' || (gridsat ? n === 1 : n >= 1 && n <= 6)) return 'vis';
   return (gridsat ? n === 3 : [8, 9, 10].includes(n)) ? '9' : '13';
 }
 const fieldKind = () => kindFor(val('ct-satellite') || '19', val('ct-band'));
@@ -296,28 +310,24 @@ async function run() {
   btn.disabled = true;
   setStatus('loading', 'working...');
   try {
+    const params = { satellite: val('ct-satellite') || '19', date: val('ct-date'), time: val('ct-time'), band: val('ct-band') };
     const meta = await callAPI('/colortable/load', {
-      satellite: val('ct-satellite') || '19',
-      date: val('ct-date'),
-      time: val('ct-time'),
-      band: val('ct-band'),
+      ...params,
       lat: val('ct-lat'),
       lon: val('ct-lon'),
       zoom: val('ct-zoom'),
       full: fullDisk ? 'true' : null,
+      maxpx: Math.min(viewer.maxTexture, FIRST_LOAD_PX),
     });
-    if (meta.width > viewer.maxTexture || meta.height > viewer.maxTexture)
-      throw Error(`Image is ${meta.width} × ${meta.height}; this GPU allows ${viewer.maxTexture} px. Use a smaller zoom.`);
     setStatus('loading', `transferring ${meta.width} × ${meta.height} px...`);
-    const res = await fetch(`${API_BASE}/colortable/frame/${meta.frame}`);
-    if (!res.ok) throw Error('Image expired on the server; run again.');
-    const buffer = await res.arrayBuffer();
-    if (buffer.byteLength !== meta.width * meta.height * 2) throw Error('Incomplete transfer; run again.');
+    const data = await pixels(meta);
+    refineToken++;
     setKind(meta.kind);
-    viewer.setImage(new Uint16Array(buffer), meta);
+    viewer.setImage(data, meta);
     current = meta;
+    request = params;
     $('ct-placeholder').hidden = true;
-    $('ct-title').textContent = `${meta.title} · ${meta.scan_time} · ${meta.width} × ${meta.height} native px`;
+    showTitle();
     $('ct-title').style.color = '#111';
     $('ct-source').hidden = !meta.source;
     if (meta.source) $('ct-source').href = meta.source;
@@ -330,6 +340,60 @@ async function run() {
   } finally {
     btn.disabled = false;
   }
+}
+
+async function pixels(meta) {
+  const res = await fetch(`${API_BASE}/colortable/frame/${meta.frame}`);
+  if (!res.ok) throw Error('Image expired on the server; run again.');
+  const buffer = await res.arrayBuffer();
+  if (buffer.byteLength !== meta.width * meta.height * 2) throw Error('Incomplete transfer; run again.');
+  return new Uint16Array(buffer);
+}
+
+// Title: what is shown and at what resolution (every Nth native pixel until zoomed in far enough)
+function showTitle(note = '') {
+  const m = current, stride = viewer.detail ? viewer.detail.meta.stride : m.stride || 1;
+  const res = stride > 1 ? `every ${stride}${[, 'st', 'nd', 'rd'][stride] || 'th'} native px` : 'native px';
+  $('ct-title').textContent = `${m.title} · ${m.scan_time} · ${res}${note}`;
+}
+
+// When the view shows the image coarser than the screen can, load the visible area (plus a margin)
+// at the resolution the screen needs, and draw it over the overview. So resolution follows zoom.
+let refineTimer = null, refineToken = 0;
+
+function scheduleRefine() {
+  clearTimeout(refineTimer);
+  refineTimer = setTimeout(refine, 350);
+}
+
+async function refine() {
+  const m = current;
+  if (!m || !m.refinable || !viewer?.hasImage || (m.stride || 1) <= 1) return;
+  const [vx, vy, vw, vh] = viewer.view, s = m.stride, [C0, R0] = m.crop;
+  const need = Math.max(1, Math.ceil(Math.max(vw * s / viewer.canvas.width, vh * s / viewer.canvas.height)));
+  const d = viewer.detail;
+  if (need >= s) {   // zoomed out: the overview is already as sharp as the screen
+    if (d) { viewer.clearDetail(); showTitle(); }
+    return;
+  }
+  if (d && d.meta.stride <= need && vx >= d.rect[0] && vy >= d.rect[1]
+      && vx + vw <= d.rect[0] + d.rect[2] && vy + vh <= d.rect[1] + d.rect[3]) return;   // already covered
+  const pad = .25;
+  const c0 = Math.max(0, Math.floor(C0 + (vx - vw * pad) * s)), c1 = Math.min(m.grid_width, Math.ceil(C0 + (vx + vw * (1 + pad)) * s));
+  const r0 = Math.max(0, Math.floor(R0 + (vy - vh * pad) * s)), r1 = Math.min(m.grid_height, Math.ceil(R0 + (vy + vh * (1 + pad)) * s));
+  const token = ++refineToken;
+  showTitle(' · sharpening…');
+  try {
+    const maxpx = Math.min(viewer.maxTexture, Math.ceil(Math.max(viewer.canvas.width, viewer.canvas.height) * (1 + 2 * pad)));
+    const meta = await callAPI('/colortable/load', { ...request, rect: [c0, r0, c1, r1].join(','), maxpx });
+    const data = await pixels(meta);
+    if (token !== refineToken || current !== m) return;   // the view or image changed meanwhile
+    const [dc0, dr0] = meta.crop;
+    viewer.setDetail(data, meta, [(dc0 - C0) / s, (dr0 - R0) / s, meta.width * meta.stride / s, meta.height * meta.stride / s]);
+  } catch (e) {
+    if (token === refineToken) setStatus('error', e.message);
+  }
+  if (token === refineToken) showTitle();
 }
 
 // ---------------------------------------------------------------------------
@@ -358,7 +422,7 @@ function restoreInputs() {
 }
 
 function setFull(on) {
-  if (on && !(viewer && viewer.maxTexture >= FULL_DISK_PX)) return;
+  if (on && !viewer) return;
   fullDisk = on;
   $('ct-full').classList.toggle('active', on);
   for (const id of ['ct-lat', 'ct-lon', 'ct-zoom']) $(id).disabled = on;
@@ -473,7 +537,7 @@ async function labeledImage() {
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.fillStyle = '#111';
   ctx.font = font('bold');
-  ctx.fillText(`${current.title} Brightness Temperature`, 0, line - size * .25);
+  ctx.fillText(`${current.title} ${current.quantity}`, 0, line - size * .25);
   ctx.fillText(`Time: ${current.scan_time}`, 0, 2 * line - size * .25);
   ctx.font = font('normal');
   ctx.textAlign = 'right';
@@ -500,9 +564,9 @@ async function labeledImage() {
   ctx.font = font('normal');
   ctx.textAlign = 'center';
   for (const t of tickValues()) {
-    const x = Math.round((t - vmin) / (vmax - vmin) * (W - 1)) + .5, label = `${t}°C`, half = ctx.measureText(label).width / 2;
+    const x = Math.round((t - vmin) / (vmax - vmin) * (W - 1)) + .5, text = label(t), half = ctx.measureText(text).width / 2;
     ctx.fillRect(x - ctx.lineWidth / 2, barTop + barH, ctx.lineWidth, tickH);
-    ctx.fillText(label, Math.min(W - half, Math.max(half, x)), barTop + barH + tickH + line - size * .25);
+    ctx.fillText(text, Math.min(W - half, Math.max(half, x)), barTop + barH + tickH + line - size * .25);
   }
   return out;
 }
@@ -512,6 +576,21 @@ $('ct-png').onclick = async () => {
   const name = `${current.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}_${current.scan_time.replace(/\D/g, '').slice(0, 12)}_${val('ct-name') || 'custom'}.png`;
   (await labeledImage()).toBlob(b => { if (b) download(b, name); }, 'image/png');
 };
+
+// The browser's own "Copy image" only sees the bare canvas, so copy the labeled image instead.
+// The blob is passed as a promise so the clipboard write starts inside the click (Safari needs that).
+async function copyImage() {
+  if (!viewer?.hasImage) { setStatus('error', 'Run an image first.'); return; }
+  try {
+    const blob = labeledImage().then(c => new Promise(r => c.toBlob(r, 'image/png')));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    $('ct-copy-png').textContent = 'copied';
+    setTimeout(() => { $('ct-copy-png').textContent = 'copy png'; }, 1500);
+  } catch (e) {
+    setStatus('error', `Couldn't copy (${e.message}); use save png instead.`);
+  }
+}
+$('ct-copy-png').onclick = copyImage;
 
 const canvas = $('ct-canvas');
 let drag = null;
@@ -530,15 +609,16 @@ canvas.onpointermove = e => {
   if (drag) viewer.pan(e.clientX - drag.x, e.clientY - drag.y, drag.start);
   const p = viewer?.pixel(e.clientX, e.clientY);
   if (!p) return;
-  const ix = Math.floor(p.x), iy = Math.floor(p.y), raw = viewer.data[iy * viewer.meta.width + ix];
-  const ll = latlon(viewer.meta, ix, iy);
-  $('ct-hover').textContent = (raw === 65535 ? 'no data' : `${(raw * .01 - 200).toFixed(2)} °C`)
+  const m = viewer.meta, raw = viewer.valueAt(p.x, p.y), ll = latlon(m, p.x, p.y);
+  const value = raw * (m.scale ?? .01) + (m.offset ?? -200);
+  $('ct-hover').textContent = (raw === 65535 ? 'no data' : `${value.toFixed(isVis() ? 3 : 2)} ${unit()}`.trim())
     + (ll ? ` · ${ll.lat.toFixed(2)}°, ${ll.lon.toFixed(2)}°` : '');
 };
 
 window.addEventListener('keydown', e => {
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); $(e.shiftKey ? 'ct-redo' : 'ct-undo').click(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !String(getSelection())) { e.preventDefault(); copyImage(); }
 });
 window.addEventListener('resize', () => { if (palette) schedule(); });
 
@@ -546,12 +626,8 @@ window.addEventListener('resize', () => { if (palette) schedule(); });
 // Startup
 // ---------------------------------------------------------------------------
 
-try { viewer = new Viewer(canvas); }
+try { viewer = new Viewer(canvas); viewer.onview = scheduleRefine; }
 catch (e) { setStatus('error', e.message); }
-if (viewer && viewer.maxTexture < FULL_DISK_PX) {
-  $('ct-full').disabled = true;
-  $('ct-full-hint').textContent = `unavailable: GPU limit ${viewer.maxTexture} px`;
-}
 restoreInputs();
 try {
   presets = await callAPI('/colortable/presets');

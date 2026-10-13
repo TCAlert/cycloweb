@@ -25,19 +25,52 @@ uniform vec2 range;         // vmin, vmax in the same units
 uniform vec4 background;
 uniform float canvasHeight;
 uniform int colors;
+uniform int graticule;      // 1: lat/lon lines and the Earth's edge on blank areas
+uniform vec4 gridGeo;       // base-image pixel -> scan angle: x0, y0, dx, dy (radians)
+uniform vec4 gridProj;      // sub-satellite lon (deg), b/a, (h + a)/a, 1 for x sweep
+uniform float gridStep;     // degrees between lines
+const vec4 gridColor = vec4(.82, .82, .82, 1.);
+const vec4 limbColor = vec4(.62, .62, .62, 1.);
 out vec4 outColor;
+
+// Blank pixel: background with antialiased ~1 px graticule lines and the Earth's edge (limb).
+vec4 blank(vec2 ll, vec2 llWidth, float det, float detWidth) {
+  if (graticule == 0) return background;
+  float limb = 1. - clamp(abs(det) / max(detWidth, 1e-12), 0., 1.);
+  if (det < 0.) return mix(background, limbColor, limb);                                // off the Earth
+  vec2 px = abs(fract(ll / gridStep + .5) - .5) * gridStep / max(llWidth, vec2(1e-9));  // px to nearest line
+  float line = 1. - clamp(min(px.x, px.y) - .5, 0., 1.);
+  return mix(mix(background, gridColor, line), limbColor, limb);
+}
+
 void main() {
   vec2 screen = vec2(gl_FragCoord.x, canvasHeight - gl_FragCoord.y);
   vec2 uv = (screen - rect.xy) / rect.zw;
-  if (any(lessThan(uv, vec2(0.))) || any(greaterThanEqual(uv, vec2(1.)))) discard;
   vec2 p = view.xy + uv * view.zw;
-  // a 'contain' view can reach past the image edges: those parts are page background
-  if (any(lessThan(p, vec2(0.))) || any(greaterThanEqual(p, vec2(textureSize(dataTex, 0))))) { outColor = background; return; }
+  // Lat/lon for the graticule (PROJ geos inverse), computed before any branching so the
+  // screen-space derivatives that set the line width are well defined.
+  vec2 ll = vec2(0.);
+  float det = 0.;
+  if (graticule == 1) {
+    float X = gridGeo.x + p.x * gridGeo.z, Y = gridGeo.y + p.y * gridGeo.w, vy, vz;
+    if (gridProj.w > .5) { vz = tan(Y); vy = tan(X) * sqrt(1. + vz * vz); }
+    else { vy = tan(X); vz = tan(Y) * sqrt(1. + vy * vy); }
+    float rp = gridProj.y, rg = gridProj.z, A = vy * vy + (vz / rp) * (vz / rp) + 1., B = -2. * rg;
+    det = B * B - 4. * A * (rg * rg - 1.);
+    float k = (-B - sqrt(max(det, 0.))) / (2. * A), sx = rg - k, lam = atan(vy * k, sx);
+    ll = vec2(degrees(atan(vz * k * cos(lam) / sx / (rp * rp))), gridProj.x + degrees(lam));
+  }
+  vec2 llWidth = fwidth(ll);
+  float detWidth = fwidth(det);
+  if (any(lessThan(uv, vec2(0.))) || any(greaterThanEqual(uv, vec2(1.)))) discard;
+  // a 'contain' view can reach past the image edges: those parts are blank too
+  bool outside = any(lessThan(p, vec2(0.))) || any(greaterThanEqual(p, vec2(textureSize(dataTex, 0))));
   vec2 d = (p - detailRect.xy) / detailRect.zw;
-  uint value = hasDetail == 1 && all(greaterThanEqual(d, vec2(0.))) && all(lessThan(d, vec2(1.)))
+  uint value = outside ? 65535u
+    : hasDetail == 1 && all(greaterThanEqual(d, vec2(0.))) && all(lessThan(d, vec2(1.)))
     ? texelFetch(detailTex, ivec2(floor(d * detailSize)), 0).r
     : texelFetch(dataTex, ivec2(floor(p)), 0).r;
-  if (value == 65535u) { outColor = background; return; }
+  if (value == 65535u) { outColor = blank(ll, llWidth, det, detWidth); return; }
   float t = float(value) * decode.x + decode.y;
   float f = clamp((t - range.x) / (range.y - range.x), 0., 1.);
   int i = min(colors - 1, int(floor(f * float(colors))));   // matplotlib bin rule
@@ -73,7 +106,7 @@ export class Viewer {
 
     this.locations = {};
     for (const name of ['dataTex', 'detailTex', 'colorTex', 'rect', 'view', 'detailRect', 'detailSize', 'hasDetail',
-                        'decode', 'range', 'background', 'canvasHeight', 'colors'])
+                        'decode', 'range', 'background', 'canvasHeight', 'colors', 'graticule', 'gridGeo', 'gridProj', 'gridStep'])
       this.locations[name] = g.getUniformLocation(this.program, name);
     this.dataTex = g.createTexture();
     this.colorTex = g.createTexture();
@@ -151,7 +184,8 @@ export class Viewer {
     this.draw();
   }
 
-  full() { if (this.meta) this.setView([0, 0, this.meta.width, this.meta.height]); }
+  // Whole image, or the image's own opening view (mesosectors open on the sectors, not the whole disk)
+  full() { if (this.meta) this.setView(this.meta.home || [0, 0, this.meta.width, this.meta.height]); }
 
   setView(bounds) {
     this.view = [bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1]];
@@ -197,6 +231,18 @@ export class Viewer {
     g.uniform4fv(this.locations.view, this.view);
     g.uniform2fv(this.locations.range, this.range);
     g.uniform2fv(this.locations.decode, [this.meta.scale ?? .01, this.meta.offset ?? -200]);
+    const m = this.meta, pr = m.projection, grid = !!(m.graticule && pr);
+    g.uniform1i(this.locations.graticule, grid ? 1 : 0);
+    if (grid) {
+      const a = pr.semi_major_axis;
+      g.uniform4fv(this.locations.gridGeo, [m.x0, m.y0, m.dx, m.dy]);
+      g.uniform4fv(this.locations.gridProj, [pr.longitude_of_projection_origin, pr.semi_minor_axis / a,
+        (pr.perspective_point_height + a) / a, pr.sweep_angle_axis === 'x' ? 1 : 0]);
+      // line spacing that keeps lines roughly 110 css px apart at this zoom
+      const degPerPx = Math.abs(m.dx) * pr.perspective_point_height / 111320 * (this.view[2] / this.rect[2]);
+      const want = degPerPx * 110 * (window.devicePixelRatio || 1);
+      g.uniform1f(this.locations.gridStep, [.25, .5, 1, 2, 5, 10, 15, 30].find(s => s >= want) || 30);
+    }
     const d = this.detail;
     g.uniform1i(this.locations.hasDetail, d ? 1 : 0);
     if (d) {

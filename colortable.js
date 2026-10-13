@@ -311,14 +311,15 @@ async function run() {
   btn.disabled = true;
   setStatus('loading', 'working...');
   try {
-    const params = { satellite: val('ct-satellite') || '19', date: val('ct-date'), time: val('ct-time'), band: val('ct-band') };
+    // params are reused for zoom-in requests, so they carry the mesosector flag too
+    const params = { satellite: val('ct-satellite') || '19', date: val('ct-date'), time: val('ct-time'), band: val('ct-band'),
+                     meso: area === 'meso' ? 'true' : null };
     const meta = await callAPI('/colortable/load', {
       ...params,
       lat: val('ct-lat'),
       lon: val('ct-lon'),
       zoom: val('ct-zoom'),
       full: area === 'full' ? 'true' : null,
-      meso: area === 'meso' ? 'true' : null,
       maxpx: Math.min(viewer.maxTexture, FIRST_LOAD_PX),
     });
     setStatus('loading', `transferring ${meta.width} × ${meta.height} px...`);
@@ -427,7 +428,7 @@ function restoreInputs() {
 const AREA_HINTS = {
   crop: 'both off: area from LAT, LON, ZOOM',
   full: 'whole disk or grid; sharpens as you zoom',
-  meso: 'GOES M1 + M2 side by side · Himawari target area',
+  meso: 'GOES M1 + M2 · Himawari target area, in place on the disk',
 };
 
 function setArea(next) {
@@ -691,9 +692,7 @@ canvas.onpointermove = e => {
   if (!p) return;
   const m = viewer.meta;
   if (p.x < 0 || p.y < 0 || p.x >= m.width || p.y >= m.height) { $('ct-hover').textContent = ''; return; }
-  // mesosector panels each have their own grid; positions are relative to the panel
-  const pan = m.panels?.find(q => p.x >= q.offset && p.x < q.offset + q.width && p.y < q.height);
-  const raw = viewer.valueAt(p.x, p.y), ll = pan ? latlon(pan, p.x - pan.offset, p.y) : latlon(m, p.x, p.y);
+  const raw = viewer.valueAt(p.x, p.y), ll = latlon(m, p.x, p.y);
   const value = raw * (m.scale ?? .01) + (m.offset ?? -200);
   $('ct-hover').textContent = (raw === 65535 ? 'no data' : `${value.toFixed(isVis() ? 3 : 2)} ${unit()}`.trim())
     + (ll ? ` · ${ll.lat.toFixed(2)}°, ${ll.lon.toFixed(2)}°` : '');

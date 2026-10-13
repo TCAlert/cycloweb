@@ -5,6 +5,7 @@ import { Viewer, latlon } from './colortable-viewer.js';
 const LOCAL_API = new URLSearchParams(location.search).get('api');
 const API_BASE = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(LOCAL_API || '') ? LOCAL_API : 'https://tcalert-cycloweb2.hf.space';
 const FIRST_LOAD_PX = 4096;  // longest side of the first image; zooming in loads finer pixels for the view
+const EXPORT_PX = 8192;      // longest side of a full-resolution copy / save
 const STORE_KEY = 'cw_ct_palettes';
 
 const $ = id => document.getElementById(id);
@@ -19,7 +20,7 @@ let current = null;        // metadata of the displayed image
 let request = null;        // parameters of the displayed image, reused for zoom-in requests
 let selected = -1;
 let undoStack = [], redoStack = [];
-let lut, drawQueued = false, fullDisk = false;
+let lut, drawQueued = false, fullDisk = false, fullRes = false;
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { }
 
@@ -520,10 +521,65 @@ $('ct-download').onclick = () => {
 $('ct-reset').onclick = () => viewer?.full();
 $('ct-zoom-in').onclick = () => viewer?.zoom(.8);
 $('ct-zoom-out').onclick = () => viewer?.zoom(1.25);
+// Packed value -> RGBA pixel (as one little-endian uint32) for all 65536 values, binned exactly like the
+// viewer's shader, so a full-resolution export is colored the same as the screen.
+function colorTable() {
+  const m = current, n = lut.length / 4, colors = new Uint32Array(lut.buffer, lut.byteOffset, n);
+  const { vmin, vmax } = palette, out = new Uint32Array(65536);
+  for (let v = 0; v < 65535; v++) {
+    const f = Math.min(1, Math.max(0, (v * m.scale + m.offset - vmin) / (vmax - vmin)));
+    out[v] = colors[Math.min(n - 1, Math.floor(f * n))];
+  }
+  out[65535] = 0xffffffff;   // missing: page white, like the viewer
+  return out;
+}
+
+// The current view at native pixels (up to EXPORT_PX on the long side), colored with the current table.
+async function nativeImage() {
+  const m = current, [vx, vy, vw, vh] = viewer.view, s = m.stride || 1;
+  let data, w, h;
+  if (s > 1 && m.refinable) {
+    // the loaded overview is thinned: fetch the view's native pixels
+    const [C0, R0] = m.crop;
+    const c0 = Math.max(0, Math.floor(C0 + vx * s)), c1 = Math.min(m.grid_width, Math.ceil(C0 + (vx + vw) * s));
+    const r0 = Math.max(0, Math.floor(R0 + vy * s)), r1 = Math.min(m.grid_height, Math.ceil(R0 + (vy + vh) * s));
+    const meta = await callAPI('/colortable/load', { ...request, rect: [c0, r0, c1, r1].join(','), maxpx: EXPORT_PX });
+    data = await pixels(meta);
+    w = meta.width;
+    h = meta.height;
+  } else {
+    // the loaded image already holds every pixel there is: cut the view out of it
+    const x0 = Math.max(0, Math.floor(vx)), x1 = Math.min(m.width, Math.ceil(vx + vw));
+    const y0 = Math.max(0, Math.floor(vy)), y1 = Math.min(m.height, Math.ceil(vy + vh));
+    w = x1 - x0;
+    h = y1 - y0;
+    data = new Uint16Array(w * h);
+    for (let y = 0; y < h; y++) data.set(viewer.data.subarray((y0 + y) * m.width + x0, (y0 + y) * m.width + x1), y * w);
+  }
+  const table = colorTable(), img = document.createElement('canvas');
+  img.width = w;
+  img.height = h;
+  const ctx = img.getContext('2d'), im = ctx.createImageData(w, h), out = new Uint32Array(im.data.buffer);
+  for (let i = 0; i < data.length; i++) out[i] = table[data[i]];
+  ctx.putImageData(im, 0, 0);
+  return img;
+}
+
+// What copy / save produce: the screen view, or the native-resolution view when FULL RES is on.
+async function exportImage() {
+  return labeledImage(fullRes ? await nativeImage() : viewer.snapshot());
+}
+
+function setFullRes(on) {
+  fullRes = on;
+  $('ct-fullres').classList.toggle('active', on);
+  try { localStorage.setItem('cw_ct_fullres', on ? '1' : '0'); } catch { }
+}
+
 // Image with a title strip above and the colorbar below, laid out like the site's matplotlib plots:
 // satellite/band and scan time on the left, author on the right.
-async function labeledImage() {
-  const img = viewer.snapshot(), W = img.width;
+async function labeledImage(img) {
+  const W = img.width;
   const size = Math.max(12, Math.round(W / 60)), pad = Math.round(size * .6), line = Math.round(size * 1.25);
   const barH = Math.round(size * 1.1), tickH = Math.round(size * .35);
   const font = weight => `${weight} ${size}px "Courier Prime", "Courier New", monospace`;
@@ -574,18 +630,25 @@ async function labeledImage() {
 $('ct-png').onclick = async () => {
   if (!viewer?.hasImage) { setStatus('error', 'Run an image first.'); return; }
   const name = `${current.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}_${current.scan_time.replace(/\D/g, '').slice(0, 12)}_${val('ct-name') || 'custom'}.png`;
-  (await labeledImage()).toBlob(b => { if (b) download(b, name); }, 'image/png');
+  setStatus('loading', 'saving...');
+  try {
+    const img = await exportImage();
+    img.toBlob(b => { if (b) download(b, name); setStatus('success', 'done.'); }, 'image/png');
+  } catch (e) { setStatus('error', e.message); }
 };
+$('ct-fullres').onclick = () => setFullRes(!fullRes);
 
 // The browser's own "Copy image" only sees the bare canvas, so copy the labeled image instead.
 // The blob is passed as a promise so the clipboard write starts inside the click (Safari needs that).
 async function copyImage() {
   if (!viewer?.hasImage) { setStatus('error', 'Run an image first.'); return; }
+  setStatus('loading', 'copying...');
   try {
-    const blob = labeledImage().then(c => new Promise(r => c.toBlob(r, 'image/png')));
+    const blob = exportImage().then(c => new Promise(r => c.toBlob(r, 'image/png')));
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     $('ct-copy-png').textContent = 'copied';
     setTimeout(() => { $('ct-copy-png').textContent = 'copy png'; }, 1500);
+    setStatus('success', 'done.');
   } catch (e) {
     setStatus('error', `Couldn't copy (${e.message}); use save png instead.`);
   }
@@ -629,6 +692,7 @@ window.addEventListener('resize', () => { if (palette) schedule(); });
 try { viewer = new Viewer(canvas); viewer.onview = scheduleRefine; }
 catch (e) { setStatus('error', e.message); }
 restoreInputs();
+try { setFullRes(localStorage.getItem('cw_ct_fullres') === '1'); } catch { }
 try {
   presets = await callAPI('/colortable/presets');
   setKind(fieldKind());

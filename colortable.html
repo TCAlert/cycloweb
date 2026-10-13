@@ -177,6 +177,7 @@
       min-height: 1.9rem;
     }
     #ct-hover { flex: 1; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .view-toggle .step-btn { flex: 0 0 auto; font-size: 10px; padding: .05rem .4rem; }
     .view-toggle a, .link-btn { color: #111; font-family: inherit; font-size: 11px; background: none; border: none; text-decoration: underline; cursor: pointer; white-space: nowrap; }
 
     /* ── Right: table editor ── */
@@ -302,6 +303,7 @@
     <div class="view-toggle">
       <span id="ct-hover">scroll to zoom · drag to pan</span>
       <a id="ct-source" href="#" target="_blank" rel="noreferrer" hidden>source .nc</a>
+      <button class="step-btn" id="ct-fullres" type="button" title="Copy and save at native resolution (up to 8192 px) instead of screen resolution">FULL RES</button>
       <button class="link-btn" id="ct-copy-png" title="Copy with title and colorbar (Ctrl+C)">copy png</button>
       <button class="link-btn" id="ct-png">save png</button>
     </div>

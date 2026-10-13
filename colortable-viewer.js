@@ -168,17 +168,23 @@ export class Viewer {
   }
 }
 
-// Native GOES fixed-grid pixel -> { lat, lon }, or null off the disk.
+// Pixel (col, row) -> { lat, lon }, or null off the disk.
+// 'latlon' grids (GridSat) are regular; geostationary grids use PROJ's geos inverse, which
+// covers both GOES-R (sweep x) and Himawari (sweep y).
 export function latlon(m, x, y) {
+  const wrap = lon => ((lon + 180) % 360 + 360) % 360 - 180;
+  if (m.grid === 'latlon') return { lat: m.lat0 + y * m.dlat, lon: wrap(m.lon0 + x * m.dlon) };
   if (!m.projection) return null;
-  const g = m.projection, X = m.x0 + x * m.dx, Y = m.y0 + y * m.dy;
-  const a = g.semi_major_axis, b = g.semi_minor_axis, H = g.perspective_point_height + a, q = a * a / (b * b);
-  const cx = Math.cos(X), sx = Math.sin(X), cy = Math.cos(Y), sy = Math.sin(Y);
-  const A = sx * sx + cx * cx * (cy * cy + q * sy * sy), B = -2 * H * cx * cy, C = H * H - a * a, D = B * B - 4 * A * C;
-  if (D < 0) return null;
-  const r = (-B - Math.sqrt(D)) / (2 * A), px = r * cx * cy, py = -r * sx, pz = r * cx * sy;
-  return {
-    lat: Math.atan(q * pz / Math.hypot(H - px, py)) * 180 / Math.PI,
-    lon: g.longitude_of_projection_origin - Math.atan2(py, H - px) * 180 / Math.PI,
-  };
+  const g = m.projection, X = m.x0 + x * m.dx, Y = m.y0 + y * m.dy;   // scan angles (radians)
+  const a = g.semi_major_axis, rp = g.semi_minor_axis / a, rg = (g.perspective_point_height + a) / a;
+  let vx = -1, vy, vz;
+  if (g.sweep_angle_axis === 'x') { vz = Math.tan(Y); vy = Math.tan(X) * Math.hypot(1, vz); }
+  else { vy = Math.tan(X); vz = Math.tan(Y) * Math.hypot(1, vy); }
+  const A = vy * vy + (vz / rp) ** 2 + vx * vx, B = 2 * rg * vx, det = B * B - 4 * A * (rg * rg - 1);
+  if (det < 0) return null;
+  const k = (-B - Math.sqrt(det)) / (2 * A);
+  vx = rg + k * vx; vy *= k; vz *= k;
+  const lam = Math.atan2(vy, vx);
+  const phi = Math.atan(Math.tan(Math.atan(vz * Math.cos(lam) / vx)) / (rp * rp));
+  return { lat: phi * 180 / Math.PI, lon: wrap(g.longitude_of_projection_origin + lam * 180 / Math.PI) };
 }

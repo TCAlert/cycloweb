@@ -240,11 +240,11 @@
   <div class="left-panel">
     <div class="param-panel">
       <div class="param-title">Color Table</div>
-      <div class="param-desc">GOES-R infrared on the native 2 km grid. Edit any satcmaps.py table and it recolors instantly.</div>
+      <div class="param-desc">GOES-R, Himawari, and GridSat infrared on their native grids. Edit any satcmaps.py table and it recolors instantly.</div>
       <div class="field">
         <label>SATELLITE</label>
         <input id="ct-satellite" type="text" placeholder="19" />
-        <span class="hint">16 17 18 19</span>
+        <span class="hint">16–19 · H8 H9 · GridSat 8–15 · B1</span>
       </div>
       <div class="field">
         <label>DATE</label>
@@ -253,7 +253,7 @@
       <div class="field">
         <label>TIME (UTC)</label>
         <input id="ct-time" type="text" placeholder="1800" maxlength="4" />
-        <span class="hint">nearest scan within 20 min</span>
+        <span class="hint">nearest available scan</span>
       </div>
       <div class="field">
         <label>LAT</label>
@@ -265,8 +265,8 @@
       </div>
       <div class="field">
         <label>BAND</label>
-        <input id="ct-band" type="text" placeholder="13" />
-        <span class="hint">7–16 · 8–10 use WV tables</span>
+        <input id="ct-band" type="text" placeholder="13" class="optional" />
+        <span class="hint">7–16 · GridSat 2–6 · B1 3 or 4</span>
       </div>
       <div class="field">
         <label>ZOOM</label>
@@ -275,7 +275,7 @@
       </div>
       <div class="field">
         <button class="step-btn" id="ct-full" type="button">FULL DISK</button>
-        <span class="hint" id="ct-full-hint">whole disk, ~30 MB</span>
+        <span class="hint" id="ct-full-hint">whole disk or grid, 10–40 MB</span>
       </div>
       <button class="submit" id="ct-run">run</button>
       <div class="status" id="ct-status"></div>

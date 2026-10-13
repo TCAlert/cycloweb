@@ -4,7 +4,7 @@ import { Viewer, latlon } from './colortable-viewer.js';
 // ?api=http://127.0.0.1:7860 points the page at a local api.py for testing
 const LOCAL_API = new URLSearchParams(location.search).get('api');
 const API_BASE = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(LOCAL_API || '') ? LOCAL_API : 'https://tcalert-cycloweb2.hf.space';
-const FULL_DISK_PX = 5424;
+const FULL_DISK_PX = 5500;   // largest whole image (Himawari full disk)
 const STORE_KEY = 'cw_ct_palettes';
 
 const $ = id => document.getElementById(id);
@@ -267,7 +267,13 @@ function setKind(next) {
   }
 }
 
-const kindForBand = band => [8, 9, 10].includes(parseInt(band)) ? '9' : '13';
+// Water-vapor bands use the WV tables: 8–10 on GOES-R / Himawari, channel 3 on GridSat
+function kindFor(satellite, band) {
+  const s = satellite.toUpperCase(), n = parseInt(band);
+  const gridsat = s === 'B1' || (/^\d+$/.test(s) && Number(s) >= 8 && Number(s) <= 15);
+  return (gridsat ? n === 3 : [8, 9, 10].includes(n)) ? '9' : '13';
+}
+const fieldKind = () => kindFor(val('ct-satellite') || '19', val('ct-band'));
 
 // ---------------------------------------------------------------------------
 // Loading imagery
@@ -288,7 +294,7 @@ async function run() {
       satellite: val('ct-satellite') || '19',
       date: val('ct-date'),
       time: val('ct-time'),
-      band: val('ct-band') || '13',
+      band: val('ct-band'),
       lat: val('ct-lat'),
       lon: val('ct-lon'),
       zoom: val('ct-zoom'),
@@ -305,10 +311,10 @@ async function run() {
     viewer.setImage(new Uint16Array(buffer), meta);
     current = meta;
     $('ct-placeholder').hidden = true;
-    $('ct-title').textContent = `GOES-${meta.satellite} · CH${String(meta.band).padStart(2, '0')} · ${meta.scan_time} · ${meta.width} × ${meta.height} native px`;
+    $('ct-title').textContent = `${meta.title} · ${meta.scan_time} · ${meta.width} × ${meta.height} native px`;
     $('ct-title').style.color = '#111';
-    $('ct-source').href = meta.source;
-    $('ct-source').hidden = false;
+    $('ct-source').hidden = !meta.source;
+    if (meta.source) $('ct-source').href = meta.source;
     update();
     updateHash();
     FIELDS.forEach(id => { try { localStorage.setItem('cw_' + id, $(id).value); } catch { } });
@@ -369,7 +375,7 @@ FIELDS.forEach(id => {
   $(id).addEventListener('input', () => { try { localStorage.setItem('cw_' + id, $(id).value); } catch { } });
   $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
 });
-$('ct-band').addEventListener('input', () => { if (presets[kindForBand(val('ct-band') || '13')]) setKind(kindForBand(val('ct-band') || '13')); });
+for (const id of ['ct-satellite', 'ct-band']) $(id).addEventListener('input', () => { if (presets[fieldKind()]) setKind(fieldKind()); });
 $('ct-full').onclick = () => setFull(!fullDisk);
 
 $('ct-search').oninput = presetOptions;
@@ -447,7 +453,7 @@ $('ct-zoom-out').onclick = () => viewer?.zoom(1.25);
 $('ct-png').onclick = () => {
   if (!viewer?.hasImage) { setStatus('error', 'Run an image first.'); return; }
   viewer.draw();
-  const name = `goes${current.satellite}_ch${String(current.band).padStart(2, '0')}_${current.scan_time.replace(/\D/g, '').slice(0, 12)}_${val('ct-name') || 'custom'}.png`;
+  const name = `${current.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}_${current.scan_time.replace(/\D/g, '').slice(0, 12)}_${val('ct-name') || 'custom'}.png`;
   $('ct-canvas').toBlob(b => { if (b) download(b, name); }, 'image/png');
 };
 
@@ -493,7 +499,7 @@ if (viewer && viewer.maxTexture < FULL_DISK_PX) {
 restoreInputs();
 try {
   presets = await callAPI('/colortable/presets');
-  setKind(kindForBand(val('ct-band') || '13'));
+  setKind(fieldKind());
 } catch (e) {
   setStatus('error', 'Could not load presets: ' + e.message);
 }

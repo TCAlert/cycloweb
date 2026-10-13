@@ -141,6 +141,16 @@ export class Viewer {
     g.drawArrays(g.TRIANGLES, 0, 6);
   }
 
+  // Copy of just the drawn image (no letterbox margins), for PNG export.
+  snapshot() {
+    this.draw();
+    const [x, y, w, h] = this.rect.map(Math.round), out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    out.getContext('2d').drawImage(this.canvas, x, y, w, h, 0, 0, w, h);
+    return out;
+  }
+
   // Data-space position under a client point, or null when outside the image.
   pixel(clientX, clientY) {
     if (!this.hasImage || !this.rect) return null;

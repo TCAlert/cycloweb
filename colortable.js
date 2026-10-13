@@ -450,11 +450,35 @@ $('ct-download').onclick = () => {
 $('ct-reset').onclick = () => viewer?.full();
 $('ct-zoom-in').onclick = () => viewer?.zoom(.8);
 $('ct-zoom-out').onclick = () => viewer?.zoom(1.25);
-$('ct-png').onclick = () => {
+// Image with a title strip above it, laid out like the site's matplotlib plots:
+// satellite/band and scan time on the left, author on the right.
+async function labeledImage() {
+  const img = viewer.snapshot();
+  const size = Math.max(12, Math.round(img.width / 60)), pad = Math.round(size * .6), line = Math.round(size * 1.25);
+  const font = weight => `${weight} ${size}px "Courier Prime", "Courier New", monospace`;
+  try { await Promise.all([document.fonts.load(font('bold')), document.fonts.load(font('normal'))]); } catch { }
+  const out = document.createElement('canvas');
+  out.width = img.width;
+  out.height = img.height + 2 * line + pad;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.fillStyle = '#111';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = font('bold');
+  ctx.fillText(`${current.title} Brightness Temperature`, 0, line - size * .25);
+  ctx.fillText(`Time: ${current.scan_time}`, 0, 2 * line - size * .25);
+  ctx.font = font('normal');
+  ctx.textAlign = 'right';
+  ctx.fillText('Deelan Jariwala', out.width, 2 * line - size * .25);
+  ctx.drawImage(img, 0, 2 * line + pad);
+  return out;
+}
+
+$('ct-png').onclick = async () => {
   if (!viewer?.hasImage) { setStatus('error', 'Run an image first.'); return; }
-  viewer.draw();
   const name = `${current.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}_${current.scan_time.replace(/\D/g, '').slice(0, 12)}_${val('ct-name') || 'custom'}.png`;
-  $('ct-canvas').toBlob(b => { if (b) download(b, name); }, 'image/png');
+  (await labeledImage()).toBlob(b => { if (b) download(b, name); }, 'image/png');
 };
 
 const canvas = $('ct-canvas');

@@ -86,6 +86,13 @@ function niceStep(span) {
   return 200;
 }
 
+// Colorbar tick temperatures (shared by the on-screen colorbar and the PNG export)
+function tickValues() {
+  const { vmin, vmax } = palette, step = niceStep(vmax - vmin), out = [];
+  for (let t = Math.ceil(vmin / step) * step; t <= vmax + 1e-9; t += step) out.push(Math.round(t * 10) / 10);
+  return out;
+}
+
 function drawRamps() {
   for (const id of ['ct-legend', 'ct-ramp']) {
     const c = $(id);
@@ -98,14 +105,13 @@ function drawRamps() {
     }
     ctx.putImageData(im, 0, 0);
   }
-  const { vmin, vmax } = palette, step = niceStep(vmax - vmin), ticks = [];
-  for (let t = Math.ceil(vmin / step) * step; t <= vmax + 1e-9; t += step) {
+  const { vmin, vmax } = palette;
+  $('ct-ticks').replaceChildren(...tickValues().map(t => {
     const s = document.createElement('span');
     s.style.left = 100 * (t - vmin) / (vmax - vmin) + '%';
-    s.textContent = `${Math.round(t * 10) / 10}°C`;
-    ticks.push(s);
-  }
-  $('ct-ticks').replaceChildren(...ticks);
+    s.textContent = `${t}°C`;
+    return s;
+  }));
   for (const h of $('ct-handles').children) {
     const p = palette.points[Number(h.dataset.index)];
     h.style.left = 100 * (p.t - vmin) / (vmax - vmin) + '%';
@@ -450,28 +456,54 @@ $('ct-download').onclick = () => {
 $('ct-reset').onclick = () => viewer?.full();
 $('ct-zoom-in').onclick = () => viewer?.zoom(.8);
 $('ct-zoom-out').onclick = () => viewer?.zoom(1.25);
-// Image with a title strip above it, laid out like the site's matplotlib plots:
+// Image with a title strip above and the colorbar below, laid out like the site's matplotlib plots:
 // satellite/band and scan time on the left, author on the right.
 async function labeledImage() {
-  const img = viewer.snapshot();
-  const size = Math.max(12, Math.round(img.width / 60)), pad = Math.round(size * .6), line = Math.round(size * 1.25);
+  const img = viewer.snapshot(), W = img.width;
+  const size = Math.max(12, Math.round(W / 60)), pad = Math.round(size * .6), line = Math.round(size * 1.25);
+  const barH = Math.round(size * 1.1), tickH = Math.round(size * .35);
   const font = weight => `${weight} ${size}px "Courier Prime", "Courier New", monospace`;
   try { await Promise.all([document.fonts.load(font('bold')), document.fonts.load(font('normal'))]); } catch { }
+  const top = 2 * line + pad, barTop = top + img.height + pad;
   const out = document.createElement('canvas');
-  out.width = img.width;
-  out.height = img.height + 2 * line + pad;
+  out.width = W;
+  out.height = barTop + barH + tickH + line + Math.round(size * .3);
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.fillStyle = '#111';
-  ctx.textBaseline = 'alphabetic';
   ctx.font = font('bold');
   ctx.fillText(`${current.title} Brightness Temperature`, 0, line - size * .25);
   ctx.fillText(`Time: ${current.scan_time}`, 0, 2 * line - size * .25);
   ctx.font = font('normal');
   ctx.textAlign = 'right';
-  ctx.fillText('Deelan Jariwala', out.width, 2 * line - size * .25);
-  ctx.drawImage(img, 0, 2 * line + pad);
+  ctx.fillText('Deelan Jariwala', W, 2 * line - size * .25);
+  ctx.drawImage(img, 0, top);
+
+  // Colorbar: one column per output pixel, binned exactly like the image
+  const bar = ctx.createImageData(W, 1), n = lut.length / 4;
+  for (let x = 0; x < W; x++) {
+    const i = Math.min(n - 1, Math.floor(x / W * n)) * 4;
+    bar.data.set(lut.subarray(i, i + 4), x * 4);
+  }
+  const strip = document.createElement('canvas');
+  strip.width = W;
+  strip.height = 1;
+  strip.getContext('2d').putImageData(bar, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(strip, 0, barTop, W, barH);
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = Math.max(1, Math.round(size / 14));
+  ctx.strokeRect(ctx.lineWidth / 2, barTop + ctx.lineWidth / 2, W - ctx.lineWidth, barH - ctx.lineWidth);
+
+  const { vmin, vmax } = palette;
+  ctx.font = font('normal');
+  ctx.textAlign = 'center';
+  for (const t of tickValues()) {
+    const x = Math.round((t - vmin) / (vmax - vmin) * (W - 1)) + .5, label = `${t}°C`, half = ctx.measureText(label).width / 2;
+    ctx.fillRect(x - ctx.lineWidth / 2, barTop + barH, ctx.lineWidth, tickH);
+    ctx.fillText(label, Math.min(W - half, Math.max(half, x)), barTop + barH + tickH + line - size * .25);
+  }
   return out;
 }
 

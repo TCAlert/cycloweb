@@ -112,13 +112,22 @@ export class Viewer {
     this.draw();
   }
 
+  // Keep the view inside the image and, once the canvas size is known, at the canvas's aspect
+  // ratio so the image fills the whole viewer (cropping, never letterboxing). Keeps the view's centre.
   clamp() {
     const v = this.view, m = this.meta;
     if (!v || !m) return;
-    v[2] = Math.min(m.width, Math.max(2, v[2]));
-    v[3] = Math.min(m.height, Math.max(2, v[3]));
-    v[0] = Math.max(0, Math.min(m.width - v[2], v[0]));
-    v[1] = Math.max(0, Math.min(m.height - v[3], v[1]));
+    let w = Math.max(2, v[2]), h = Math.max(2, v[3]);
+    if (this.aspect) {
+      h = w / this.aspect;
+      if (h > m.height) { h = m.height; w = h * this.aspect; }
+      if (w > m.width) { w = m.width; h = w / this.aspect; }
+    } else {
+      w = Math.min(m.width, w);
+      h = Math.min(m.height, h);
+    }
+    const cx = v[0] + v[2] / 2, cy = v[1] + v[3] / 2;
+    this.view = [Math.max(0, Math.min(m.width - w, cx - w / 2)), Math.max(0, Math.min(m.height - h, cy - h / 2)), w, h];
   }
 
   draw() {
@@ -130,6 +139,8 @@ export class Viewer {
     g.clearColor(...BACKGROUND);
     g.clear(g.COLOR_BUFFER_BIT);
     if (!this.hasImage || !this.colors) return;
+    this.aspect = w / h;
+    this.clamp();
     const [, , vw, vh] = this.view, s = Math.min(w / vw, h / vh);
     this.rect = [(w - vw * s) / 2, (h - vh * s) / 2, vw * s, vh * s];
     g.useProgram(this.program);
@@ -141,7 +152,7 @@ export class Viewer {
     g.drawArrays(g.TRIANGLES, 0, 6);
   }
 
-  // Copy of just the drawn image (no letterbox margins), for PNG export.
+  // Copy of the drawn image, for PNG export.
   snapshot() {
     this.draw();
     const [x, y, w, h] = this.rect.map(Math.round), out = document.createElement('canvas');
